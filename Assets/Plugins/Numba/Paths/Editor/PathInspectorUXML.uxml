@@ -2,4 +2,5 @@
     <ui:SliderInt picking-mode="Ignore" label="Resolution" value="1" high-value="64" binding-path="_resolution" show-input-field="true" low-value="1" />
     <ui:Toggle label="Looped" binding-path="_looped" />
     <ui:ListView focusable="true" show-border="true" usage-hints="None" show-foldout-header="true" header-title="Points" show-add-remove-footer="false" horizontal-scrolling="false" name="Points" reorderable="true" virtualization-method="FixedHeight" show-alternating-row-backgrounds="ContentOnly" selection-type="Single" reorder-mode="Animated" show-bound-collection-size="false" fixed-item-height="30" style="max-height: 376px;" />
+    <uie:Vector3Field label="Vec3 Field" name="proptest" />
 </ui:UXML>

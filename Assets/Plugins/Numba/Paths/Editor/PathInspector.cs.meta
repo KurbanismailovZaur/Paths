@@ -5,6 +5,8 @@ MonoImporter:
   serializedVersion: 2
   defaultReferences:
   - _pathInspectorUXML: {fileID: 9197481963319205126, guid: 6b63f3cdd66f69a4f8f51c83e81f84df, type: 3}
+  - _pathSceneViewUXML: {fileID: 9197481963319205126, guid: 310cc58f597662e41a0b2b0b30851801, type: 3}
+  - _pathPointsListElementUXML: {fileID: 9197481963319205126, guid: ad663d15257d1e54ea7c3c3f4a34cd5d, type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

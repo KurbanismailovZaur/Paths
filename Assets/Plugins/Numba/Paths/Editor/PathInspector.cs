@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -13,6 +14,35 @@ namespace Paths
     [CustomEditor(typeof(Path))]
     public class PathInspector : Editor
     {
+        private class PointsBinding : IBinding
+        {
+            private PathInspector _inscpector;
+            private VisualElement _listView;
+
+            public PointsBinding(PathInspector inscpector, VisualElement listView)
+            {
+                _inscpector = inscpector;
+                _listView = listView;
+            }
+
+            public void PreUpdate() { }
+
+            public void Release() { }
+
+            public void Update()
+            {
+                foreach (var element in _listView.Children())
+                {
+                    var number = Convert.ToInt32(element.Q<Label>("point-number").text);
+                    var posField = element.Q<Vector3Field>("point-position");
+                    posField.value = _inscpector._path.Points[number];
+                }
+
+                if (_inscpector._selectedPointIndex != -1)
+                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").value = _inscpector._path.Points[_inscpector._selectedPointIndex];
+            }
+        }
+
         private VisualElement _inspector;
 
         private Path _path;
@@ -20,11 +50,21 @@ namespace Paths
         [SerializeField]
         private VisualTreeAsset _pathInspectorUXML;
 
-        private Transform _selectedPoint;
+        [SerializeField]
+        private VisualTreeAsset _pathSceneViewUXML;
+
+        [SerializeField]
+        private VisualTreeAsset _pathPointsListElementUXML;
+
+        private int _selectedPointIndex;
 
         private Tool _lastTool = Tool.None;
 
         private bool _isFramed;
+
+        private GroupBox _toolsBox;
+
+        //private List<Action> _editorUpdateCallbacks = new();
 
         private void MakeInspectorAndPath(out VisualElement inspector, out Path path)
         {
@@ -34,251 +74,230 @@ namespace Paths
             path = ((Path)serializedObject.targetObject);
         }
 
-        private void InitializeListView(ListView list, IList source, Func<VisualElement> maker, Action<VisualElement, int> binder)
+        private void RebuildListView(ListView listView)
         {
-            list.itemsSource = source;
-            list.makeItem = maker;
-            list.bindItem = binder;
+            //_editorUpdateCallbacks.Clear();
+            listView.Rebuild();
         }
 
-        private void AddElement(ListView list, Path path, List<Transform> points, int index)
+        private void AddElement(ListView listView, int index)
         {
-            var point = new GameObject((index + 1).ToString());
-            point.transform.parent = path.transform;
-            point.hideFlags = HideFlags.HideInHierarchy;
+            Vector3 newPoint;
 
-            if (index < points.Count - 1)
-                point.transform.position = Vector3.Lerp(points[index].position, points[index + 1].position, 0.5f);
+            if (index < _path.Points.Count - 1)
+                newPoint = Vector3.Lerp(_path.Points[index], _path.Points[index + 1], 0.5f);
             else
-                point.transform.position = points[index].position + (points[index].position - points[index - 1].position);
+                newPoint = _path.Points[index] + (_path.Points[index] - _path.Points[index - 1]);
 
-            points.Insert(index + 1, point.transform);
-            point.transform.SetSiblingIndex(index + 1);
+            _path.Points.Insert(index + 1, newPoint);
 
-            for (int i = index + 2; i < points.Count; i++)
-                points[i].name = i.ToString();
+            RebuildListView(listView);
 
-            list.Rebuild();
-            list.ScrollToItem(index + 1);
-            list.selectedIndex = index + 1;
+            listView.ScrollToItem(index + 1);
+            listView.selectedIndex = index + 1;
         }
 
-        private void RemoveElement(ListView list, List<Transform> points, int index)
+        private void RemoveElement(ListView listView, int index)
         {
-            DestroyImmediate(points[index].gameObject);
-            points.RemoveAt(index);
-
-            for (int i = index; i < points.Count; i++)
-                points[i].name = (Convert.ToInt32(points[i].name) - 1).ToString();
-
-            list.Rebuild();
+            _path.Points.RemoveAt(index);
+            RebuildListView(listView);
         }
 
-        public override VisualElement CreateInspectorGUI()
+        private void ToolsBoxPositionSyncHandler()
         {
-            _selectedPoint = null;
+            _toolsBox.Q<Vector3Field>("point-position").SetValueWithoutNotify(_path.Points[_selectedPointIndex]);
+        }
 
-            MakeInspectorAndPath(out _inspector, out _path);
-
-            var points = _path.transform.Cast<Transform>().ToList();
-
-            var list = _inspector.Q<ListView>("Points");
-            InitializeListView(list, points, () => new GroupBox(), (element, index) =>
+        private void SelectPoint(int index)
+        {
+            var needCreateToolsBox = _selectedPointIndex == -1;
+            if (needCreateToolsBox)
             {
-                var itemGroup = (GroupBox)element;
-                itemGroup.Clear();
+                var sceneViewElement = SceneView.lastActiveSceneView.rootVisualElement.Q("unity-scene-view-camera-rect");
+                _pathSceneViewUXML.CloneTree(sceneViewElement);
+                _toolsBox = sceneViewElement.Q<GroupBox>("paths-root");
+            }
 
-                #region Item group styling
-                itemGroup.style.flexDirection = new StyleEnum<FlexDirection>(FlexDirection.Row);
-                itemGroup.style.borderLeftWidth = 10f;
-                itemGroup.style.justifyContent = new StyleEnum<Justify>(Justify.SpaceAround);
-                #endregion
+            _selectedPointIndex = index;
+            _isFramed = false;
 
-                #region Creating point number label
-                var pointNumberLabel = new Label();
-                pointNumberLabel.BindProperty(new SerializedObject(points[index].gameObject).FindProperty("m_Name"));
-                pointNumberLabel.style.width = 40f;
-                pointNumberLabel.style.unityTextAlign = new StyleEnum<TextAnchor>(TextAnchor.MiddleLeft);
-                pointNumberLabel.style.color = Color.yellow;
+            var label = _toolsBox.Q<Label>("point-number");
+            label.text = $"Point number: {_selectedPointIndex}";
 
-                itemGroup.Add(pointNumberLabel);
-                #endregion
+            var position = _toolsBox.Q<Vector3Field>("point-position");
+            position.value = _path.Points[_selectedPointIndex];
 
-                #region Creating point position Vector3 field
-                var position = new Vector3Field() { value = points[index].position };
-                position.Q("unity-x-input").ElementAt(1).style.width = 60f;
-                position.Q("unity-y-input").ElementAt(1).style.width = 60f;
-                position.Q("unity-z-input").ElementAt(1).style.width = 60f;
-
-                position.BindProperty(new SerializedObject(points[index]).FindProperty("m_LocalPosition"));
-
-                itemGroup.Add(position);
-                #endregion
-
-                #region Creating add, remove and focus point buttons
-                var twoButtons = points.Count > 4;
-
-                var addButton = new Button(() => AddElement(list, _path, points, index)) { text = "+" };
-                addButton.style.marginBottom = addButton.style.marginLeft = addButton.style.marginRight = addButton.style.marginTop = 0f;
-                addButton.style.paddingBottom = addButton.style.paddingLeft = addButton.style.paddingRight = addButton.style.paddingTop = 0f;
-                addButton.style.width = 30f;
-                addButton.style.height = 20f;
-
-                Button removeButton = null;
-
-                if (twoButtons)
-                {
-                    addButton.style.borderRightWidth = 0f;
-                    addButton.style.borderTopRightRadius = addButton.style.borderBottomRightRadius = 0f;
-
-                    removeButton = new Button(() => RemoveElement(list, points, index)) { text = "-" };
-                    removeButton.style.marginBottom = removeButton.style.marginLeft = removeButton.style.marginRight = removeButton.style.marginTop = 0f;
-                    removeButton.style.paddingBottom = removeButton.style.paddingLeft = removeButton.style.paddingRight = removeButton.style.paddingTop = 0f;
-                    removeButton.style.width = 30f;
-                    removeButton.style.height = 20f;
-                    removeButton.style.borderLeftWidth = 0f;
-                    removeButton.style.borderTopLeftRadius = removeButton.style.borderBottomLeftRadius = 0f;
-                }
-
-                #region Creating focus button
-                var focusButton = new Button(() =>
-                {
-                    SelectPointInListView(index);
-                    FrameOnSelectedPoint();
-                });
-                focusButton.style.marginBottom = focusButton.style.marginLeft = focusButton.style.marginRight = focusButton.style.marginTop = 0f;
-                focusButton.style.paddingBottom = focusButton.style.paddingLeft = focusButton.style.paddingRight = focusButton.style.paddingTop = 0f;
-                focusButton.style.width = 30f;
-                focusButton.style.height = 20f;
-                focusButton.style.alignItems = new StyleEnum<Align>(Align.Center);
-                focusButton.style.justifyContent = new StyleEnum<Justify>(Justify.Center);
-                focusButton.style.marginLeft = 20f;
-
-                var image = new VisualElement();
-                image.style.backgroundImage = Resources.Load<Texture2D>("Focus");
-                image.style.height = image.style.width = 12f;
-
-                focusButton.Add(image);
-                #endregion
-
-                #region Creating group for these buttons
-                var buttonsGroup = new GroupBox();
-                buttonsGroup.style.width = 110f;
-                buttonsGroup.style.marginBottom = buttonsGroup.style.marginLeft = buttonsGroup.style.marginRight = buttonsGroup.style.marginTop = 0f;
-                buttonsGroup.style.paddingBottom = buttonsGroup.style.paddingLeft = buttonsGroup.style.paddingRight = buttonsGroup.style.paddingTop = 0f;
-                buttonsGroup.style.flexDirection = new StyleEnum<FlexDirection>(FlexDirection.Row);
-                buttonsGroup.Add(addButton);
-
-                if (twoButtons)
-                    buttonsGroup.Add(removeButton);
-
-                buttonsGroup.Add(focusButton);
-
-                itemGroup.Add(buttonsGroup);
-                #endregion
-                #endregion
-            });
-
-            list.onSelectedIndicesChange += indeces =>
+            if (needCreateToolsBox)
             {
-                if (indeces.Count() == 0)
-                    return;
-
-                SelectPoint(points[indeces.First()]);
-                SceneView.lastActiveSceneView.Repaint();
-            };
-
-            list.itemIndexChanged += (int index0, int index1) =>
-            {
-                var points = _path.transform.Cast<Transform>().ToList();
-
-                if (index1 > index0)
-                {
-                    for (int i = index0 + 1; i <= index1; i++)
-                        points[i].name = (Convert.ToInt32(points[i].name) - 1).ToString();
-                }
-                else
-                {
-                    for (int i = index0 - 1; i >= index1; i--)
-                        points[i].name = (Convert.ToInt32(points[i].name) + 1).ToString();
-                }
-
-                points[index0].name = index1.ToString();
-                points[index0].SetSiblingIndex(index1);
-            };
-
-            return _inspector;
+                position.RegisterValueChangedCallback(e => _path.Points[_selectedPointIndex] = e.newValue);
+                //_editorUpdateCallbacks.Add(ToolsBoxPositionSyncHandler);
+            }
         }
 
         private void SelectPointInListView(int index)
         {
-            var list = _inspector.Q<ListView>();
-            list.ScrollToItem(index);
-            list.selectedIndex = index;
+            var listView = _inspector.Q<ListView>();
+            listView.ScrollToItem(index);
+            listView.selectedIndex = index;
         }
+
+        private Vector3 TransformPoint(Vector3 point) => _path.transform.TransformPoint(point);
 
         private void FrameOnSelectedPoint()
         {
-            var index = _selectedPoint.GetSiblingIndex();
-            
             Bounds bounds;
             if (!_isFramed)
             {
-                bounds = new Bounds(_selectedPoint.position, Vector3.zero);
-                bounds.Encapsulate(index != 0 ? _path.transform.GetChild(index - 1).position : _path.transform.GetChild(_path.transform.childCount - 1).position);
-                bounds.Encapsulate(index != _path.transform.childCount - 1 ? _path.transform.GetChild(index + 1).position : _path.transform.GetChild(0).position);
+                bounds = new Bounds(TransformPoint(_path.Points[_selectedPointIndex]), Vector3.zero);
+                bounds.Encapsulate(_selectedPointIndex != 0 ? TransformPoint(_path.Points[_selectedPointIndex - 1]) : TransformPoint(_path.Points[_path.Points.Count - 1]));
+                bounds.Encapsulate(_selectedPointIndex != _path.Points.Count - 1 ? TransformPoint(_path.Points[_selectedPointIndex + 1]) : TransformPoint(_path.Points[0]));
             }
             else
-                bounds = new Bounds(_selectedPoint.position, Vector3.one);
+                bounds = new Bounds(TransformPoint(_path.Points[_selectedPointIndex]), Vector3.one);
 
             SceneView.lastActiveSceneView.Frame(bounds, false);
             _isFramed = !_isFramed;
         }
 
-        private void SelectPoint(Transform point)
+        private void DeselectPoint()
         {
-            _selectedPoint = point;
-            _isFramed = false;
+            _selectedPointIndex = -1;
+            _toolsBox?.parent?.Remove(_toolsBox);
+            //_editorUpdateCallbacks.Remove(ToolsBoxPositionSyncHandler);
+        }
+
+        private void EditorUpdate()
+        {
+            //foreach (var callback in _editorUpdateCallbacks)
+            //    callback();
+        }
+
+        public override VisualElement CreateInspectorGUI()
+        {
+            MakeInspectorAndPath(out _inspector, out _path);
+
+            _selectedPointIndex = -1;
+            var listView = _inspector.Q<ListView>("Points");
+
+            listView.binding = new PointsBinding(this, listView.Q("unity-content-container"));
+
+            //listView.unbindItem += (el, index) => Debug.Log($"DESTROY {index}");
+
+            listView.itemsSource = _path.Points;
+            listView.makeItem = () =>
+            {
+                _pathPointsListElementUXML.CloneTree(_inspector);
+
+                var groupBox = _inspector.Children().Last();
+                _inspector.Remove(groupBox);
+
+                return groupBox;
+            };
+
+            listView.bindItem = (element, index) =>
+            {
+                var elementGroup = (GroupBox)element;
+
+                #region Point name
+                var labelField = elementGroup.Q<Label>("point-number");
+                labelField.text = index.ToString();
+                #endregion
+
+                #region Point position
+                var posField = elementGroup.Q<Vector3Field>("point-position");
+                posField.value = _path.Points[index];
+                posField.RegisterValueChangedCallback(e =>
+                {
+                    _path.Points[index] = e.newValue;
+                    SceneView.lastActiveSceneView.Repaint();
+                });
+
+                //_editorUpdateCallbacks.Add(() => posField.SetValueWithoutNotify(_path.Points[index]));
+                #endregion
+
+                #region Add and remove point
+                var addButton = elementGroup.Q<Button>("add-point-button");
+                addButton.clicked += () => AddElement(listView, index);
+
+                var removeButton = elementGroup.Q<Button>("remove-point-button");
+
+                var twoButtons = _path.Points.Count > 4;
+                if (!twoButtons)
+                    removeButton.SetEnabled(false);
+                else
+                    removeButton.clicked += () => RemoveElement(listView, index);
+                #endregion
+            };
+
+            listView.itemIndexChanged += (from, to) => SelectPointInListView(to);
+
+            #region Selecting and index changing
+            listView.onSelectedIndicesChange += indeces =>
+            {
+                if (indeces.Count() == 0)
+                    return;
+
+                SelectPoint(indeces.First());
+                SceneView.lastActiveSceneView.Repaint();
+            };
+            #endregion
+
+            return _inspector;
         }
 
         private void OnSceneGUI()
         {
-            if (Event.current.isKey && Event.current.keyCode == KeyCode.F && Event.current.type == EventType.KeyDown && _selectedPoint != null)
+            if (Event.current.isKey && Event.current.keyCode == KeyCode.F && Event.current.type == EventType.KeyDown && _selectedPointIndex != -1)
             {
                 FrameOnSelectedPoint();
                 Event.current.Use();
             }
 
-            var skin = Resources.Load<GUISkin>("Skin");
+            var skin = Resources.Load<GUISkin>("Numba/Paths/Skin");
+            var yellowCircleTex = Resources.Load<Texture>("Numba/Paths/Textures/YellowCircle");
 
-            foreach (Transform point in _path.transform)
+            for (int i = 0; i < _path.Points.Count; i++)
             {
-                var screenPos = SceneView.lastActiveSceneView.camera.WorldToScreenPoint(point.position);
-                var texture = Resources.Load<Texture>("YellowCircle");
+                var point = _path.Points[i];
+                var screenPos = SceneView.lastActiveSceneView.camera.WorldToScreenPoint(TransformPoint(point));
 
                 Handles.BeginGUI();
 
                 var pointRect = new Rect(screenPos.x, SceneView.lastActiveSceneView.camera.pixelHeight - screenPos.y, 24f, 24f);
 
-                GUI.DrawTexture(new Rect(pointRect.x - 12f, pointRect.y - 12f, pointRect.width, pointRect.height), texture);
-                GUI.Label(new Rect(pointRect.x - ((point.name.Length == 1) ? 11f : 12), pointRect.y - 12f, pointRect.width, pointRect.height), point.name, skin.label);
+                GUI.DrawTexture(new Rect(pointRect.x - 12f, pointRect.y - 12f, pointRect.width, pointRect.height), yellowCircleTex);
+                GUI.Label(new Rect(pointRect.x - ((i.ToString().Length == 1) ? 11f : 12), pointRect.y - 12f, pointRect.width, pointRect.height), i.ToString(), skin.label);
 
-                if (_selectedPoint != point && GUI.Button(new Rect(pointRect.x - 12f, pointRect.y - 12f, pointRect.width, pointRect.height), "", skin.button))
-                {
-                    SelectPoint(point);
-                    SelectPointInListView(_selectedPoint.GetSiblingIndex());
-                }
+                if (_selectedPointIndex != i && GUI.Button(new Rect(pointRect.x - 12f, pointRect.y - 12f, pointRect.width, pointRect.height), "", skin.button))
+                    SelectPointInListView(i);
 
                 Handles.EndGUI();
 
-                if (_selectedPoint == point)
+                if (_selectedPointIndex == i)
                 {
-                    Undo.RecordObject(_selectedPoint, $"Changed path point {point.name} position");
-                    point.position = Handles.PositionHandle(point.position, point.rotation);
+                    //Undo.RecordObject(_selectedPointIndex, $"Changed path point {point.name} position");
+                    _path.Points[i] = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.Points[i]), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
                 }
             }
 
-            if (_selectedPoint != null)
+            for (int i = 0; i < _path.Points.Count - 1; i++)
+            {
+                var middlePoint = Vector3.Lerp(TransformPoint(_path.Points[i]), TransformPoint(_path.Points[i + 1]), 0.5f);
+                var screenPos = SceneView.lastActiveSceneView.camera.WorldToScreenPoint(middlePoint);
+                screenPos.y = SceneView.lastActiveSceneView.camera.pixelHeight - screenPos.y;
+
+                if (Vector2.Distance(screenPos, Event.current.mousePosition) <= 50f)
+                {
+                    Handles.BeginGUI();
+                    GUI.DrawTexture(new Rect(screenPos.x - 12f, screenPos.y - 12f, 24f, 24f), yellowCircleTex);
+                    GUI.Label(new Rect(screenPos.x - 12f, screenPos.y - 14f, 24f, 24f), "+", skin.GetStyle("addbutton"));
+                    Handles.EndGUI();
+                }
+
+                SceneView.lastActiveSceneView.Repaint();
+            }
+
+            if (_selectedPointIndex != -1)
             {
                 if (_lastTool == Tool.None)
                     _lastTool = Tools.current;
@@ -287,13 +306,14 @@ namespace Paths
                 Handles.BeginGUI();
 
                 var screenPos = SceneView.lastActiveSceneView.camera.WorldToScreenPoint(_path.transform.position);
-                var rootRect = new Rect(screenPos.x - 12f, SceneView.lastActiveSceneView.camera.pixelHeight - screenPos.y - 12f, 24f, 24f);
+                var rootRect = new Rect(screenPos.x - 6f, SceneView.lastActiveSceneView.camera.pixelHeight - screenPos.y - 6f, 12f, 12f);
 
-                GUI.DrawTexture(rootRect, Resources.Load<Texture2D>("Root"));
+                GUI.DrawTexture(rootRect, yellowCircleTex);
+                GUI.DrawTexture(new Rect(screenPos.x - 3f, SceneView.lastActiveSceneView.camera.pixelHeight - screenPos.y - 3f, 6f, 6f), Resources.Load<Texture2D>("Numba/Paths/Textures/BlackCircle"));
 
                 if (GUI.Button(rootRect, "", skin.button))
                 {
-                    _selectedPoint = null;
+                    DeselectPoint();
 
                     Tools.current = _lastTool;
                     _lastTool = Tool.None;
@@ -303,10 +323,20 @@ namespace Paths
             }
         }
 
+        private void OnEnable()
+        {
+            EditorApplication.update += EditorUpdate;
+        }
+
         private void OnDisable()
         {
-            if (_selectedPoint != null)
+            EditorApplication.update -= EditorUpdate;
+            //_editorUpdateCallbacks.Clear();
+
+            if (_selectedPointIndex != -1)
                 Tools.current = _lastTool;
+
+            DeselectPoint();
         }
     }
 }
