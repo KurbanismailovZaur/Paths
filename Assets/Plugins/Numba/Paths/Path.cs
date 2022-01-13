@@ -44,7 +44,7 @@ namespace Paths
             path.Points.Add(new Vector3(0.5f, 0f, 0f));
             path.Points.Add(new Vector3(1f, 0f, 0f));
 
-            Selection.activeObject = path;
+             Selection.activeObject = path;
         }
 
         /// <summary>

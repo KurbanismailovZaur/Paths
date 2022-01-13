@@ -31,11 +31,13 @@ namespace Paths
 
             public void Update()
             {
-                foreach (var element in _listView.Children())
+                foreach (var groupBox in _listView.Query<GroupBox>("point-element").Build())
                 {
-                    var number = Convert.ToInt32(element.Q<Label>("point-number").text);
-                    var posField = element.Q<Vector3Field>("point-position");
-                    posField.value = _inscpector._path.Points[number];
+                    var posField = groupBox.Q<Vector3Field>("point-position");
+
+                    var numberText = groupBox.Q<Label>("point-number").text;
+                    if (int.TryParse(numberText, out int number))
+                        posField.value = _inscpector._path.Points[number];
                 }
 
                 if (_inscpector._selectedPointIndex != -1)
@@ -64,7 +66,11 @@ namespace Paths
 
         private GroupBox _toolsBox;
 
-        //private List<Action> _editorUpdateCallbacks = new();
+        private Dictionary<VisualElement, EventCallback<ChangeEvent<Vector3>>> _positionFieldValueChangedCallbacks = new();
+
+        private Dictionary<VisualElement, Action> _addButtonCallbacks = new();
+
+        private Dictionary<VisualElement, Action> _removeButtonCallbacks = new();
 
         private void MakeInspectorAndPath(out VisualElement inspector, out Path path)
         {
@@ -72,12 +78,6 @@ namespace Paths
             _pathInspectorUXML.CloneTree(inspector);
 
             path = ((Path)serializedObject.targetObject);
-        }
-
-        private void RebuildListView(ListView listView)
-        {
-            //_editorUpdateCallbacks.Clear();
-            listView.Rebuild();
         }
 
         private void AddElement(ListView listView, int index)
@@ -91,7 +91,7 @@ namespace Paths
 
             _path.Points.Insert(index + 1, newPoint);
 
-            RebuildListView(listView);
+            listView.Rebuild();
 
             listView.ScrollToItem(index + 1);
             listView.selectedIndex = index + 1;
@@ -100,12 +100,7 @@ namespace Paths
         private void RemoveElement(ListView listView, int index)
         {
             _path.Points.RemoveAt(index);
-            RebuildListView(listView);
-        }
-
-        private void ToolsBoxPositionSyncHandler()
-        {
-            _toolsBox.Q<Vector3Field>("point-position").SetValueWithoutNotify(_path.Points[_selectedPointIndex]);
+            listView.Rebuild();
         }
 
         private void SelectPoint(int index)
@@ -128,10 +123,7 @@ namespace Paths
             position.value = _path.Points[_selectedPointIndex];
 
             if (needCreateToolsBox)
-            {
                 position.RegisterValueChangedCallback(e => _path.Points[_selectedPointIndex] = e.newValue);
-                //_editorUpdateCallbacks.Add(ToolsBoxPositionSyncHandler);
-            }
         }
 
         private void SelectPointInListView(int index)
@@ -146,7 +138,7 @@ namespace Paths
         private void FrameOnSelectedPoint()
         {
             Bounds bounds;
-            if (!_isFramed)
+            if (_isFramed)
             {
                 bounds = new Bounds(TransformPoint(_path.Points[_selectedPointIndex]), Vector3.zero);
                 bounds.Encapsulate(_selectedPointIndex != 0 ? TransformPoint(_path.Points[_selectedPointIndex - 1]) : TransformPoint(_path.Points[_path.Points.Count - 1]));
@@ -166,12 +158,6 @@ namespace Paths
             //_editorUpdateCallbacks.Remove(ToolsBoxPositionSyncHandler);
         }
 
-        private void EditorUpdate()
-        {
-            //foreach (var callback in _editorUpdateCallbacks)
-            //    callback();
-        }
-
         public override VisualElement CreateInspectorGUI()
         {
             MakeInspectorAndPath(out _inspector, out _path);
@@ -179,9 +165,7 @@ namespace Paths
             _selectedPointIndex = -1;
             var listView = _inspector.Q<ListView>("Points");
 
-            listView.binding = new PointsBinding(this, listView.Q("unity-content-container"));
-
-            //listView.unbindItem += (el, index) => Debug.Log($"DESTROY {index}");
+            listView.binding = new PointsBinding(this, listView);
 
             listView.itemsSource = _path.Points;
             listView.makeItem = () =>
@@ -194,40 +178,63 @@ namespace Paths
                 return groupBox;
             };
 
-            listView.bindItem = (element, index) =>
+            void Bind(VisualElement element, int index)
             {
-                var elementGroup = (GroupBox)element;
+                if (index < 0)
+                    return;
 
                 #region Point name
-                var labelField = elementGroup.Q<Label>("point-number");
+                var labelField = element.Q<Label>("point-number");
                 labelField.text = index.ToString();
                 #endregion
 
                 #region Point position
-                var posField = elementGroup.Q<Vector3Field>("point-position");
+                var posField = element.Q<Vector3Field>("point-position");
                 posField.value = _path.Points[index];
-                posField.RegisterValueChangedCallback(e =>
+
+                _positionFieldValueChangedCallbacks.Add(element, e =>
                 {
                     _path.Points[index] = e.newValue;
                     SceneView.lastActiveSceneView.Repaint();
                 });
 
-                //_editorUpdateCallbacks.Add(() => posField.SetValueWithoutNotify(_path.Points[index]));
+                posField.RegisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
                 #endregion
 
                 #region Add and remove point
-                var addButton = elementGroup.Q<Button>("add-point-button");
-                addButton.clicked += () => AddElement(listView, index);
+                var addButton = element.Q<Button>("add-point-button");
+                _addButtonCallbacks.Add(element, () => AddElement(listView, index));
+                addButton.clicked += _addButtonCallbacks[element];
 
-                var removeButton = elementGroup.Q<Button>("remove-point-button");
+                var removeButton = element.Q<Button>("remove-point-button");
+                _removeButtonCallbacks.Add(element, () => RemoveElement(listView, index));
+                removeButton.clicked += _removeButtonCallbacks[element];
 
-                var twoButtons = _path.Points.Count > 4;
-                if (!twoButtons)
+                if (_path.Points.Count <= 4)
                     removeButton.SetEnabled(false);
-                else
-                    removeButton.clicked += () => RemoveElement(listView, index);
                 #endregion
+            }
+
+            void Unbind(VisualElement element, int index)
+            {
+                if (index < 0)
+                    return;
+
+                var posField = element.Q<Vector3Field>("point-position");
+                posField.UnregisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
+                _positionFieldValueChangedCallbacks.Remove(element);
+
+                var addButton = element.Q<Button>("add-point-button");
+                addButton.clicked -= _addButtonCallbacks[element];
+                _addButtonCallbacks.Remove(element);
+
+                var removeButton = element.Q<Button>("remove-point-button");
+                removeButton.clicked -= _removeButtonCallbacks[element];
+                _removeButtonCallbacks.Remove(element);
             };
+
+            listView.bindItem = Bind;
+            listView.unbindItem += Unbind;
 
             listView.itemIndexChanged += (from, to) => SelectPointInListView(to);
 
@@ -274,10 +281,7 @@ namespace Paths
                 Handles.EndGUI();
 
                 if (_selectedPointIndex == i)
-                {
-                    //Undo.RecordObject(_selectedPointIndex, $"Changed path point {point.name} position");
                     _path.Points[i] = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.Points[i]), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
-                }
             }
 
             for (int i = 0; i < _path.Points.Count - 1; i++)
@@ -323,16 +327,8 @@ namespace Paths
             }
         }
 
-        private void OnEnable()
-        {
-            EditorApplication.update += EditorUpdate;
-        }
-
         private void OnDisable()
         {
-            EditorApplication.update -= EditorUpdate;
-            //_editorUpdateCallbacks.Clear();
-
             if (_selectedPointIndex != -1)
                 Tools.current = _lastTool;
 

@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <ui:GroupBox style="flex-direction: row; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; justify-content: space-around; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; align-items: stretch; opacity: 1; height: 28px;">
+    <ui:GroupBox name="point-element" style="flex-direction: row; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; justify-content: space-around; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; align-items: stretch; opacity: 1; height: 28px;">
         <ui:Label text="Label" display-tooltip-when-elided="true" name="point-number" style="color: rgb(255, 255, 0); padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0; justify-content: center; -unity-text-align: middle-center; margin-left: 20px; transform-origin: center;" />
         <uie:Vector3Field name="point-position" style="margin-left: 20px; margin-right: 0; margin-top: 4px; margin-bottom: 0; width: 240px; height: 20px;" />
         <ui:GroupBox style="flex-direction: row; margin-left: 0; margin-right: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 0;">
