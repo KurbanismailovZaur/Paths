@@ -152,6 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad80f83c12f8c93458dab88d3666ea71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _path: {fileID: 1407175473}
   _ints: 00000000000000000000000000000000000000000000000000000000000000000000000000000000
 --- !u!4 &289771316
 Transform:
@@ -407,11 +408,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _points:
-  - {x: 2.5637007, y: 0, z: 2.3571434}
-  - {x: 2.1904728, y: 0, z: 5.534838}
-  - {x: -2.4487035, y: 0, z: 7.172847}
-  - {x: -5.459351, y: 0, z: 1.9481536}
-  _resolution: 26
+  - {x: -3.570387, y: -0.072083056, z: -6.9607882}
+  - {x: -7.1026454, y: 3.867637, z: -4.893522}
+  - {x: 2.9303327, y: -0.07154418, z: 4.974744}
+  - {x: 7.020973, y: -0.07177746, z: 22.032257}
+  _resolution: 4
   _looped: 0
 --- !u!4 &1407175474
 Transform:
@@ -420,11 +421,11 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1407175472}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.57, y: -0.072, z: -6.96}
+  m_LocalRotation: {x: 0, y: 0, z: -0.33939472, w: 0.9406441}
+  m_LocalPosition: {x: -2.66, y: -3.12, z: 4.93}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 4
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -39.68}

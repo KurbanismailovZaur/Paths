@@ -17,12 +17,16 @@ namespace Paths
         private class PointsBinding : IBinding
         {
             private PathInspector _inspector;
+
             private ListView _listView;
+
+            private int _lastPointsCount;
 
             public PointsBinding(PathInspector inscpector, ListView listView)
             {
                 _inspector = inscpector;
                 _listView = listView;
+                _lastPointsCount = _inspector._path.Points.Count;
             }
 
             public void PreUpdate() { }
@@ -31,24 +35,21 @@ namespace Paths
 
             public void Update()
             {
+                if (_lastPointsCount != _inspector._path.Points.Count)
+                {
+                    _inspector.DeselectPoint();
+                    _listView.Rebuild();
+                    _inspector.UpdateState();
+
+                    _lastPointsCount = _inspector._path.Points.Count;
+                }
+
                 foreach (var groupBox in _listView.Query<GroupBox>("point-element").Build())
                 {
                     var posField = groupBox.Q<Vector3Field>("point-position");
 
-                    var numberText = groupBox.Q<Label>("point-number").text;
-                    if (int.TryParse(numberText, out int number))
-                    {
-                        if (number >= _inspector._path.Points.Count)
-                        {
-                            _inspector.DeselectPoint();
-                            _listView.Rebuild();
-                            _inspector.UpdateState();
-
-                            return;
-                        }
-
-                        posField.value = _inspector._path.Points[number];
-                    }
+                    var number = Convert.ToInt32(groupBox.Q<Label>("point-number").text);
+                    posField.value = _inspector._path.Points[number];
                 }
 
                 if (_inspector._selectedPointIndex != -1)
@@ -521,8 +522,8 @@ namespace Paths
             }
             else
             {
-                DrawPoint(0, true, false, true, false);
-                DrawPoint(_path.Points.Count - 1, true, false, true, false);
+                DrawPoint(0, false, false, true, false);
+                DrawPoint(_path.Points.Count - 1, false, false, true, false);
             }
         }
 
