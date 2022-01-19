@@ -42,8 +42,8 @@ namespace Paths
 
             path._points = new List<Vector3>()
             {
-                //new Vector3(-0.5f, 0f, 0f),
-                //new Vector3(0.5f, 0f, 0f)
+                new Vector3(-0.5f, 0f, 0f),
+                new Vector3(0.5f, 0f, 0f)
             };
 
             Selection.activeObject = path;
@@ -67,7 +67,7 @@ namespace Paths
 
             //if (_points.Count == 2)
             //    DrawTwoPoints();
-            //else if (_points.Count == 3)
+            //else if (_points.Count == 3) 
             //    DrawThreePoints();
             //else if (_points.Count >= 4)
             //    DrawPoints();
@@ -116,7 +116,7 @@ namespace Paths
         /// <param name="endPoint">Line end position.</param>
         /// <param name="endControlPoint">End control point.</param>
         /// <returns>Calculated line point.</returns>
-        public Vector3 GetPoint(float t, Vector3 startControlPoint, Vector3 startPoint, Vector3 endPoint, Vector3 endControlPoint)
+        public static Vector3 GetPoint(float t, Vector3 startControlPoint, Vector3 startPoint, Vector3 endPoint, Vector3 endControlPoint)
         {
             Vector3 a = 2f * startPoint;
             Vector3 b = endPoint - startControlPoint;
@@ -126,13 +126,74 @@ namespace Paths
             return 0.5f * (a + (b * t) + (t * t * c) + (t * t * t * d));
         }
 
-        //public Vector3 GetPoint(float t, int segment, bool useNormalizedDistance = true)
-        //{
-        //    if (!_looped)
-        //    {
-        //        _points
-        //    }
-        //}
+        public float GetSegmentLength(int segment)
+        {
+            if (_points.Count < 2)
+                throw new Exception("There is no segments.");
+
+            if (segment < 0)
+                throw new Exception($"Segment {segment} not exist.");
+
+            if (_points.Count == 2)
+            {
+                if (!_looped && segment > 0 || _looped && segment > 1)
+                    throw new Exception($"Segment {segment} not exist.");
+
+                return Vector3.Distance(_points[0], _points[1]);
+            }
+
+            if (_points.Count == 3)
+            {
+                if (!_looped && segment > 1 || _looped && segment > 2)
+                    throw new Exception($"Segment {segment} not exist.");
+
+                var length = 0f;
+
+                var t = 0f;
+                var step = 1f / _resolution;
+
+                var lastPosition = _points[segment];
+
+                var p0 = _points[WrapIndex(segment - 1)];
+                var p1 = _points[segment];
+                var p2 = _points[WrapIndex(segment + 1)];
+                var p3 = _points[WrapIndex(segment + 2)];
+
+                while (t < 1f)
+                {
+                    var position = GetPoint(t, p0, p1, p2, p3);
+                    length += Vector3.Distance(lastPosition, position);
+
+                    lastPosition = position;
+                    t += step;
+                }
+
+                // TODO: length += Vector3.Distance(lastPosition, GetPoint(1f, p0, p1, p2, p3));
+                return length;
+            }
+
+            return 1f;
+        }
+
+        public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true)
+        {
+            if (_points.Count == 0)
+                throw new Exception("Path does not contain points.");
+
+            if (_points.Count == 1)
+                return _points[0];
+
+            if (_points.Count == 2)
+            {
+                var length = GetSegmentLength(0);
+                var targetDistance = Mathf.Clamp(useNormalizedDistance ? length * distance : distance, 0f, length);
+
+                var (from, to) = segment == 0 ? (0, 1) : (1, 0);
+                return _points[from] + (_points[to] - _points[from]).normalized * targetDistance;
+            }
+
+            return Vector3.zero;
+        }
 
         private Vector3 TransformPoint(Vector3 point) => transform.TransformPoint(point);
 

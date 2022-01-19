@@ -37,10 +37,13 @@ namespace Paths
             {
                 if (_lastPointsCount != _inspector._path.Points.Count)
                 {
+                    var selectedIndex = _inspector._selectedPointIndex;
                     _inspector.DeselectPoint();
+
                     _listView.Rebuild();
                     _inspector.UpdateState();
 
+                    _inspector.SelectPointInListView(selectedIndex);
                     _lastPointsCount = _inspector._path.Points.Count;
                 }
 
@@ -82,8 +85,6 @@ namespace Paths
 
         private int _selectedPointIndex;
 
-        private Tool _lastTool = Tool.None;
-
         private bool _isFramed;
 
         private GroupBox _toolsBox;
@@ -91,6 +92,10 @@ namespace Paths
         private GUISkin _skin;
 
         private Dictionary<string, Texture> _textures = new();
+
+        private double _lastClickRemoveTime;
+
+        private List<int> _pointsToRemove = new();
 
         #region Callbacks
         private Dictionary<VisualElement, EventCallback<ChangeEvent<Vector3>>> _positionFieldValueChangedCallbacks = new();
@@ -121,22 +126,26 @@ namespace Paths
             _textures.Add("dotted circle", Resources.Load<Texture>("Numba/Paths/Textures/DottedCircle"));
             _textures.Add("black circle", Resources.Load<Texture>("Numba/Paths/Textures/BlackCircle"));
             _textures.Add("white circle", Resources.Load<Texture>("Numba/Paths/Textures/WhiteCircle"));
+            _textures.Add("red circle", Resources.Load<Texture>("Numba/Paths/Textures/RedCircle"));
+            _textures.Add("cross", Resources.Load<Texture>("Numba/Paths/Textures/Cross"));
+            _textures.Add("red cross", Resources.Load<Texture>("Numba/Paths/Textures/RedCross"));
+            _textures.Add("red rect", Resources.Load<Texture>("Numba/Paths/Textures/RedRect"));
         }
 
         #region Add and remove
-        private void AddElement(ListView listView, int index, Vector3 position)
+        private void AddElement(int index, Vector3 position)
         {
             _path.Points.Insert(index, position);
 
-            listView.Rebuild();
+            _listView.Rebuild();
 
-            listView.ScrollToItem(index);
-            listView.selectedIndex = index;
+            SelectPointInListView(index);
+            SelectPoint(index);
 
             UpdateState();
         }
 
-        private void AddElement(ListView listView, int index)
+        private void AddElement(int index)
         {
             Vector3 newPoint;
 
@@ -150,15 +159,15 @@ namespace Paths
                     newPoint = _path.Points[index] + (_path.Points[index] - _path.Points[index - 1]);
             }
 
-            AddElement(listView, index + 1, newPoint);
+            AddElement(index + 1, newPoint);
         }
 
-        private void RemoveElement(ListView listView, int index)
+        private void RemoveElement(int index)
         {
             DeselectPoint();
 
             _path.Points.RemoveAt(index);
-            listView.Rebuild();
+            _listView.Rebuild();
 
             UpdateState();
         }
@@ -190,9 +199,10 @@ namespace Paths
 
         private void SelectPointInListView(int index)
         {
-            var listView = _inspector.Q<ListView>();
-            listView.ScrollToItem(index);
-            listView.selectedIndex = index;
+            index = Mathf.Min(index, _path.Points.Count - 1);
+
+            _listView.ScrollToItem(index);
+            _listView.selectedIndex = index;
         }
 
         private void FrameOnSelectedPoint()
@@ -271,6 +281,9 @@ namespace Paths
 
         public override VisualElement CreateInspectorGUI()
         {
+            if (_inspector != null)
+                return _inspector;
+
             FindAllMainElements();
             LoadResources();
 
@@ -280,7 +293,7 @@ namespace Paths
 
             _pointsAddGroupBox.Q<Button>().clicked += () =>
             {
-                AddElement(_listView, 0, _path.transform.position);
+                AddElement(0, _path.transform.position);
                 _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
             };
 
@@ -322,11 +335,11 @@ namespace Paths
 
                 #region Add and remove point
                 var addButton = element.Q<Button>("add-point-button");
-                _addButtonCallbacks.Add(element, () => AddElement(_listView, index));
+                _addButtonCallbacks.Add(element, () => AddElement(index));
                 addButton.clicked += _addButtonCallbacks[element];
 
                 var removeButton = element.Q<Button>("remove-point-button");
-                _removeButtonCallbacks.Add(element, () => RemoveElement(_listView, index));
+                _removeButtonCallbacks.Add(element, () => RemoveElement(index));
                 removeButton.clicked += _removeButtonCallbacks[element];
                 #endregion
             }
@@ -354,7 +367,6 @@ namespace Paths
 
             _listView.itemIndexChanged += (from, to) => SelectPointInListView(to);
 
-            #region Selecting and index changing
             _listView.onSelectedIndicesChange += indeces =>
             {
                 if (indeces.Count() == 0)
@@ -363,13 +375,24 @@ namespace Paths
                 SelectPoint(indeces.First());
                 SceneView.lastActiveSceneView.Repaint();
             };
-            #endregion
 
             UpdateState();
 
             return _inspector;
         }
 
+        public bool NearlyEquals(float value, float other, float epsilon = 0.0000001f)
+        {
+            if (value == other) // Simple check, also handles infinities.
+                return true;
+
+            value = Mathf.Abs(value);
+            other = Mathf.Abs(other);
+
+            return Mathf.Abs(value - other) < epsilon;
+        }
+
+        #region Draw primitives
         private void DrawLine(Vector3 from, Vector3 to, Color color, bool useDotted = false)
         {
             Handles.color = color;
@@ -389,50 +412,62 @@ namespace Paths
 
             while (t < 1f)
             {
-                var position = _path.GetPoint(t, p0, p1, p2, p3);
+                var position = Path.GetPoint(t, p0, p1, p2, p3);
                 DrawLine(lastPosition, position, color, useDotted);
 
                 lastPosition = position;
                 t += step;
             }
 
-            DrawLine(lastPosition, _path.GetPoint(1f, p0, p1, p2, p3), color, useDotted);
+            // TODO: DrawLine(lastPosition, Path.GetPoint(1f, p0, p1, p2, p3), color, useDotted);
         }
 
         private void DrawRoot()
         {
-            if (_selectedPointIndex != -1)
+            Handles.BeginGUI();
+
+            GUI.DrawTexture(GetLocalPointRectInSceneView(Vector3.zero, 12f), _textures["white circle"]);
+            GUI.DrawTexture(GetLocalPointRectInSceneView(Vector3.zero, 6f), _textures["black circle"]);
+
+            var rect = GetPointRectInSceneView(Vector3.zero, new Vector2(48, 24));
+            rect.y += 24f;
+
+            GUI.Label(rect, "pivot", _skin.customStyles[4]);
+
+            if (_selectedPointIndex == -1)
             {
-                if (_lastTool == Tool.None)
-                    _lastTool = Tools.current;
-
-                Tools.current = Tool.None;
-
-                Handles.BeginGUI();
-
-                GUI.DrawTexture(GetLocalPointRectInSceneView(Vector3.zero, 12f), _textures["white circle"]);
-                GUI.DrawTexture(GetLocalPointRectInSceneView(Vector3.zero, 6f), _textures["black circle"]);
-
-                var rect = GetPointRectInSceneView(Vector3.zero, new Vector2(48, 24));
-                rect.y += 16f;
-
-                GUI.Label(rect, "pivot", _skin.customStyles[4]);
-
-                if (GUI.Button(GetLocalPointRectInSceneView(Vector3.zero, 16f), "", _skin.button))
-                {
-                    DeselectPoint();
-
-                    Tools.current = _lastTool;
-                    _lastTool = Tool.None;
-                }
-
                 Handles.EndGUI();
+                return;
             }
+
+            if (GUI.Button(GetLocalPointRectInSceneView(Vector3.zero, 16f), "", _skin.button))
+                DeselectPoint();
+
+            Handles.EndGUI();
         }
 
         private void DrawPoint(int number, bool isControl, bool drawBlackDot, bool drawLabel, bool drawYellowCircle = true)
         {
             Handles.BeginGUI();
+
+            var removeRect = Rect.zero;
+            var needDrawRemoveButton = false;
+
+            if (_selectedPointIndex != number)
+            {
+                removeRect = GetLocalPointRectInSceneView(_path.Points[number], 16f);
+                removeRect.y -= isControl ? 30f : 24f;
+
+                if (needDrawRemoveButton = Vector2.Distance(Event.current.mousePosition, removeRect.center) <= 40f)
+                {
+                    var pointCenter = GetLocalPointRectInSceneView(_path.Points[number], 24f).center;
+                    var endCenter = removeRect.center;
+                    endCenter.x -= 1f;
+
+                    var lineRect = new Rect(endCenter, new Vector2(2f, pointCenter.y - endCenter.y));
+                    GUI.DrawTexture(lineRect, _textures["red rect"]);
+                }
+            }
 
             GUI.DrawTexture(GetLocalPointRectInSceneView(_path.Points[number], 24f), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
 
@@ -455,12 +490,66 @@ namespace Paths
             if (_selectedPointIndex != number && GUI.Button(GetLocalPointRectInSceneView(_path.Points[number], 24f), "", _skin.button))
                 SelectPointInListView(number);
 
+            if (_selectedPointIndex != number && needDrawRemoveButton)
+            {
+                GUI.DrawTexture(removeRect, _textures["red circle"]);
+
+                var crossRect = new Rect(removeRect.x + 4f, removeRect.y + 4f, 8f, 8f);
+                GUI.DrawTexture(crossRect, _textures["cross"]);
+
+                if (GUI.Button(removeRect, "", _skin.button))
+                {
+                    if (EditorApplication.timeSinceStartup - _lastClickRemoveTime > 0.3f)
+                        _lastClickRemoveTime = EditorApplication.timeSinceStartup;
+                    else
+                    {
+                        _pointsToRemove.Add(number);
+                        _lastClickRemoveTime = 0d;
+                    }
+                }
+
+                SceneView.lastActiveSceneView.Repaint();
+            }
+
             Handles.EndGUI();
 
             if (_selectedPointIndex == number)
-                _path.Points[number] = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.Points[number]), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
+            {
+                var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.Points[number]), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
+
+                if (NearlyEquals(Vector3.Distance(newPos, _path.Points[number]), 0f, 0.000001f))
+                    return;
+
+                _path.Points[number] = newPos;
+            }
         }
 
+        private void DrawAddButton(Vector3 localPos)
+        {
+            Handles.BeginGUI();
+            GUI.DrawTexture(GetLocalPointRectInSceneView(localPos, 6f), _textures["white circle"]);
+            Handles.EndGUI();
+
+            if (Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(localPos)) > 40f)
+                return;
+
+            Handles.BeginGUI();
+            GUI.DrawTexture(GetLocalPointRectInSceneView(localPos, 24f), _textures["white circle"]);
+
+            var labelRect = GetLocalPointRectInSceneView(localPos, 24f);
+            labelRect.y -= 2f;
+            GUI.Label(labelRect, "+", _skin.customStyles[3]);
+
+            if (GUI.Button(GetLocalPointRectInSceneView(localPos, 24f), "", _skin.button))
+                AddElement(1, localPos);
+
+            Handles.EndGUI();
+
+            SceneView.lastActiveSceneView.Repaint();
+        }
+        #endregion
+
+        #region Draw points
         private void DrawOnePoint()
         {
             DrawRoot();
@@ -470,9 +559,9 @@ namespace Paths
         private void DrawTwoPoints()
         {
             DrawLine(_path.GetGlobalPoint(0), _path.GetGlobalPoint(1), Color.yellow);
-
             DrawRoot();
             DrawPoint(0, false, false, true);
+            DrawAddButton(Vector3.Lerp(_path.Points[0], _path.Points[1], 0.5f));
             DrawPoint(1, false, false, true);
         }
 
@@ -526,9 +615,13 @@ namespace Paths
                 DrawPoint(_path.Points.Count - 1, false, false, true, false);
             }
         }
+        #endregion
 
         private void OnSceneGUI()
         {
+            if (_inspector == null)
+                return;
+
             if (Event.current.isKey && Event.current.keyCode == KeyCode.F && Event.current.type == EventType.KeyDown && _selectedPointIndex != -1)
             {
                 FrameOnSelectedPoint();
@@ -543,14 +636,13 @@ namespace Paths
                 DrawThreePoints();
             else if (_path.Points.Count > 3)
                 DrawManyPoints();
+
+            foreach (var index in _pointsToRemove.OrderByDescending(i => i))
+                RemoveElement(index);
+            
+            _pointsToRemove.Clear();
         }
 
-        private void OnDisable()
-        {
-            if (_selectedPointIndex != -1)
-                Tools.current = _lastTool;
-
-            DeselectPoint();
-        }
+        private void OnDisable() => DeselectPoint();
     }
 }
