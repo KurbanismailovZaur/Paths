@@ -8,7 +8,10 @@ public class Test : MonoBehaviour
     private Paths.Path _path;
 
     [SerializeField]
-    [Range(0f, 10f)]
+    private int _segment;
+
+    [SerializeField]
+    [Range(-1f, 10f)]
     private float _distance;
 
     [SerializeField]
@@ -16,8 +19,12 @@ public class Test : MonoBehaviour
 
     private void Update()
     {
-        //yield return new WaitForSeconds(1f);
+        
+    }
 
-        print(_path.GetPoint(1, _distance, _useNormalizedDistance));
+    private void OnDrawGizmos()
+    {
+        var position = _path.GetPoint(_segment, _distance, _useNormalizedDistance);
+        Gizmos.DrawSphere(position, 0.05f);
     }
 }

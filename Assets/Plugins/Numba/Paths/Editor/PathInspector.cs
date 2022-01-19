@@ -419,7 +419,7 @@ namespace Paths
                 t += step;
             }
 
-            // TODO: DrawLine(lastPosition, Path.GetPoint(1f, p0, p1, p2, p3), color, useDotted);
+            DrawLine(lastPosition, Path.GetPoint(1f, p0, p1, p2, p3), color, useDotted);
         }
 
         private void DrawRoot()

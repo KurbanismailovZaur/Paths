@@ -146,33 +146,40 @@ namespace Paths
             {
                 if (!_looped && segment > 1 || _looped && segment > 2)
                     throw new Exception($"Segment {segment} not exist.");
+            }
+            else if (_points.Count > 3)
+            {
+                if (!_looped && segment > _points.Count - 4 || _looped && segment > _points.Count - 1)
+                    throw new Exception($"Segment {segment} not exist.");
 
-                var length = 0f;
-
-                var t = 0f;
-                var step = 1f / _resolution;
-
-                var lastPosition = _points[segment];
-
-                var p0 = _points[WrapIndex(segment - 1)];
-                var p1 = _points[segment];
-                var p2 = _points[WrapIndex(segment + 1)];
-                var p3 = _points[WrapIndex(segment + 2)];
-
-                while (t < 1f)
-                {
-                    var position = GetPoint(t, p0, p1, p2, p3);
-                    length += Vector3.Distance(lastPosition, position);
-
-                    lastPosition = position;
-                    t += step;
-                }
-
-                // TODO: length += Vector3.Distance(lastPosition, GetPoint(1f, p0, p1, p2, p3));
-                return length;
+                if (!_looped)
+                    segment += 1;
             }
 
-            return 1f;
+            // For 3 and more points..
+
+            var length = 0f;
+
+            var t = 0f;
+            var step = 1f / _resolution;
+
+            var lastPosition = _points[segment];
+
+            var p0 = _points[WrapIndex(segment - 1)];
+            var p1 = _points[segment];
+            var p2 = _points[WrapIndex(segment + 1)];
+            var p3 = _points[WrapIndex(segment + 2)];
+
+            while (t < 1f)
+            {
+                var position = GetPoint(t, p0, p1, p2, p3);
+                length += Vector3.Distance(lastPosition, position);
+
+                lastPosition = position;
+                t += step;
+            }
+
+            return length += Vector3.Distance(lastPosition, GetPoint(1f, p0, p1, p2, p3));
         }
 
         public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true)
@@ -181,18 +188,57 @@ namespace Paths
                 throw new Exception("Path does not contain points.");
 
             if (_points.Count == 1)
-                return _points[0];
+                return TransformPoint(_points[0]);
+
+            var length = GetSegmentLength(segment);
+            distance = Mathf.Clamp(useNormalizedDistance ? length * distance : distance, 0f, length);
 
             if (_points.Count == 2)
             {
-                var length = GetSegmentLength(segment);
-                var targetDistance = Mathf.Clamp(useNormalizedDistance ? length * distance : distance, 0f, length);
-
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
-                return _points[from] + (_points[to] - _points[from]).normalized * targetDistance;
+                return TransformPoint(_points[from] + (_points[to] - _points[from]).normalized * distance);
             }
 
-            return Vector3.zero;
+            if (_points.Count > 3 && !_looped)
+                segment += 1;
+
+            // For 3 and more points..
+
+            if (distance == 0f)
+                return _points[segment];
+            else if (distance == length)
+                return _points[WrapIndex(segment + 1)];
+
+            var t = 0f;
+            var step = 1f / _resolution;
+
+            var lastPosition = _points[segment];
+
+            var p0 = _points[WrapIndex(segment - 1)];
+            var p1 = _points[segment];
+            var p2 = _points[WrapIndex(segment + 1)];
+            var p3 = _points[WrapIndex(segment + 2)];
+
+            Vector3 position;
+            float currentLength;
+
+            while (t < 1f)
+            {
+                position = GetPoint(t, p0, p1, p2, p3);
+                currentLength = Vector3.Distance(lastPosition, position);
+
+                if (distance <= currentLength)
+                    return TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
+
+                distance -= currentLength;
+                lastPosition = position;
+                t += step;
+            }
+
+            position = GetPoint(1f, p0, p1, p2, p3);
+            currentLength = Vector3.Distance(lastPosition, position);
+
+            return TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
         }
 
         private Vector3 TransformPoint(Vector3 point) => transform.TransformPoint(point);
