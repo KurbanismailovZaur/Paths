@@ -185,7 +185,7 @@ namespace Paths
 
             if (_points.Count == 2)
             {
-                var length = GetSegmentLength(0);
+                var length = GetSegmentLength(segment);
                 var targetDistance = Mathf.Clamp(useNormalizedDistance ? length * distance : distance, 0f, length);
 
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
