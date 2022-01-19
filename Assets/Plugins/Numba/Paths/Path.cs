@@ -15,6 +15,8 @@ namespace Paths
 
         public List<Vector3> Points => _points;
 
+        //public int SegmentsCount => 
+
         [SerializeField]
         private int _resolution = 1;
 
@@ -107,7 +109,7 @@ namespace Paths
 #endif
 
         /// <summary>
-        /// Calculate CatmullRom point on line.
+        /// Calculate CatmullRom point by 2 controls and 2 end points.
         /// <br/> See <see href="https://www.habrador.com/tutorials/interpolation/1-catmull-rom-splines/"/>
         /// </summary>
         /// <param name="t">Value between <see langword="0"/> and <see langword="1"/> which represent normalized distance from <paramref name="startPoint"/> to <paramref name="endPoint"/> when draw line.</param>
@@ -116,7 +118,7 @@ namespace Paths
         /// <param name="endPoint">Line end position.</param>
         /// <param name="endControlPoint">End control point.</param>
         /// <returns>Calculated line point.</returns>
-        public static Vector3 GetPoint(float t, Vector3 startControlPoint, Vector3 startPoint, Vector3 endPoint, Vector3 endControlPoint)
+        public static Vector3 CalculatePoint(float t, Vector3 startControlPoint, Vector3 startPoint, Vector3 endPoint, Vector3 endControlPoint)
         {
             Vector3 a = 2f * startPoint;
             Vector3 b = endPoint - startControlPoint;
@@ -124,6 +126,49 @@ namespace Paths
             Vector3 d = -startControlPoint + 3f * startPoint - 3f * endPoint + endControlPoint;
 
             return 0.5f * (a + (b * t) + (t * t * c) + (t * t * t * d));
+        }
+
+        public void OptimizeResolutionByAngle(float maxAngle = 8f)
+        {
+            if (_points.Count < 3)
+            {
+                _resolution = 1;
+                return;
+            }
+
+            if (_points.Count == 3)
+            {
+                var maxPointsAngle = 0f;
+                var lastVector = (_points[1] - _points[0]).normalized;
+
+                for (int i = 1; i < _points.Count - 1; i++)
+                {
+                    var newVector = (_points[i + 1] - _points[i]).normalized;
+
+                    var angle = Vector3.Angle(lastVector, newVector);
+                    if (angle > maxPointsAngle)
+                        maxPointsAngle = angle;
+
+                    lastVector = newVector;
+                }
+
+                if (_looped)
+                {
+                    var newVector = (_points[0] - _points[_points.Count - 1]).normalized;
+
+                    var angle = Vector3.Angle(lastVector, newVector);
+                    if (angle > maxPointsAngle)
+                        maxPointsAngle = angle;
+                }
+            }
+
+
+
+            for (int i = 2; i <= 128; i++)
+            {
+                _resolution = i;
+
+            }
         }
 
         public float GetSegmentLength(int segment)
@@ -172,14 +217,14 @@ namespace Paths
 
             while (t < 1f)
             {
-                var position = GetPoint(t, p0, p1, p2, p3);
+                var position = CalculatePoint(t, p0, p1, p2, p3);
                 length += Vector3.Distance(lastPosition, position);
 
                 lastPosition = position;
                 t += step;
             }
 
-            return length += Vector3.Distance(lastPosition, GetPoint(1f, p0, p1, p2, p3));
+            return length += Vector3.Distance(lastPosition, CalculatePoint(1f, p0, p1, p2, p3));
         }
 
         public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true)
@@ -205,9 +250,9 @@ namespace Paths
             // For 3 and more points..
 
             if (distance == 0f)
-                return _points[segment];
+                return TransformPoint(_points[segment]);
             else if (distance == length)
-                return _points[WrapIndex(segment + 1)];
+                return TransformPoint(_points[WrapIndex(segment + 1)]);
 
             var t = 0f;
             var step = 1f / _resolution;
@@ -224,7 +269,7 @@ namespace Paths
 
             while (t < 1f)
             {
-                position = GetPoint(t, p0, p1, p2, p3);
+                position = CalculatePoint(t, p0, p1, p2, p3);
                 currentLength = Vector3.Distance(lastPosition, position);
 
                 if (distance <= currentLength)
@@ -235,7 +280,7 @@ namespace Paths
                 t += step;
             }
 
-            position = GetPoint(1f, p0, p1, p2, p3);
+            position = CalculatePoint(1f, p0, p1, p2, p3);
             currentLength = Vector3.Distance(lastPosition, position);
 
             return TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));

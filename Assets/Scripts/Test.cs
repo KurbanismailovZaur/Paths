@@ -21,10 +21,4 @@ public class Test : MonoBehaviour
     {
         
     }
-
-    private void OnDrawGizmos()
-    {
-        var position = _path.GetPoint(_segment, _distance, _useNormalizedDistance);
-        Gizmos.DrawSphere(position, 0.05f);
-    }
 }
