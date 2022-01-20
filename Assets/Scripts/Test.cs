@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Test : MonoBehaviour
@@ -17,8 +18,9 @@ public class Test : MonoBehaviour
     [SerializeField]
     private bool _useNormalizedDistance = true;
 
-    private void Update()
+    private void Start()
     {
-        
+        print($"{string.Join(", ", _path.Points.Local)}");
+        print($"{string.Join(", ", _path.Points.Global)}");
     }
 }

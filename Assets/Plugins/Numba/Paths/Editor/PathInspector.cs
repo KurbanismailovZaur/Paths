@@ -54,11 +54,11 @@ namespace Paths
                     if (!int.TryParse(groupBox.Q<Label>("point-number").text, out int number))
                         return;
 
-                    posField.value = _inspector._path.Points[number];
+                    posField.value = _inspector._path.Points.Local[number];
                 }
 
                 if (_inspector._selectedPointIndex != -1)
-                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").value = _inspector._path.Points[_inspector._selectedPointIndex];
+                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").value = _inspector._path.Points.Local[_inspector._selectedPointIndex];
             }
         }
 
@@ -137,7 +137,7 @@ namespace Paths
         #region Add and remove
         private void AddElement(int index, Vector3 position)
         {
-            _path.Points.Insert(index, position);
+            _path.Points.Local.Insert(index, position);
 
             _listView.Rebuild();
 
@@ -152,13 +152,13 @@ namespace Paths
             Vector3 newPoint;
 
             if (_path.Points.Count == 1)
-                newPoint = _path.Points[0];
+                newPoint = _path.Points.Local[0];
             else
             {
                 if (index < _path.Points.Count - 1)
-                    newPoint = Vector3.Lerp(_path.Points[index], _path.Points[index + 1], 0.5f);
+                    newPoint = Vector3.Lerp(_path.Points.Local[index], _path.Points.Local[index + 1], 0.5f);
                 else
-                    newPoint = _path.Points[index] + (_path.Points[index] - _path.Points[index - 1]);
+                    newPoint = _path.Points.Local[index] + (_path.Points.Local[index] - _path.Points.Local[index - 1]);
             }
 
             AddElement(index + 1, newPoint);
@@ -168,7 +168,7 @@ namespace Paths
         {
             DeselectPoint();
 
-            _path.Points.RemoveAt(index);
+            _path.Points.Local.RemoveAt(index);
             _listView.Rebuild();
 
             UpdateState();
@@ -193,10 +193,10 @@ namespace Paths
             label.text = $"Point number: {_selectedPointIndex}";
 
             var position = _toolsBox.Q<Vector3Field>("point-position");
-            position.value = _path.Points[_selectedPointIndex];
+            position.value = _path.Points.Local[_selectedPointIndex];
 
             if (needCreateToolsBox)
-                position.RegisterValueChangedCallback(e => _path.Points[_selectedPointIndex] = e.newValue);
+                position.RegisterValueChangedCallback(e => _path.Points.Local[_selectedPointIndex] = e.newValue);
         }
 
         private void SelectPointInListView(int index)
@@ -212,12 +212,12 @@ namespace Paths
             Bounds bounds;
             if (_isFramed)
             {
-                bounds = new Bounds(TransformPoint(_path.Points[_selectedPointIndex]), Vector3.zero);
-                bounds.Encapsulate(_selectedPointIndex != 0 ? TransformPoint(_path.Points[_selectedPointIndex - 1]) : TransformPoint(_path.Points[_path.Points.Count - 1]));
-                bounds.Encapsulate(_selectedPointIndex != _path.Points.Count - 1 ? TransformPoint(_path.Points[_selectedPointIndex + 1]) : TransformPoint(_path.Points[0]));
+                bounds = new Bounds(TransformPoint(_path.Points.Local[_selectedPointIndex]), Vector3.zero);
+                bounds.Encapsulate(_selectedPointIndex != 0 ? TransformPoint(_path.Points.Local[_selectedPointIndex - 1]) : TransformPoint(_path.Points.Local[_path.Points.Count - 1]));
+                bounds.Encapsulate(_selectedPointIndex != _path.Points.Count - 1 ? _path.Points.Global[_selectedPointIndex + 1] : _path.Points.Global[0]);
             }
             else
-                bounds = new Bounds(TransformPoint(_path.Points[_selectedPointIndex]), Vector3.one);
+                bounds = new Bounds(_path.Points.Global[_selectedPointIndex], Vector3.one);
 
             SceneView.lastActiveSceneView.Frame(bounds, false);
             _isFramed = !_isFramed;
@@ -302,7 +302,7 @@ namespace Paths
 
             _listView.binding = new PointsBinding(this, _listView);
 
-            _listView.itemsSource = _path.Points;
+            _listView.itemsSource = _path.Points.Local;
             _listView.makeItem = () =>
             {
                 _pathPointsListElementUXML.CloneTree(_inspector);
@@ -325,11 +325,11 @@ namespace Paths
 
                 #region Point position
                 var posField = element.Q<Vector3Field>("point-position");
-                posField.value = _path.Points[index];
+                posField.value = _path.Points.Local[index];
 
                 _positionFieldValueChangedCallbacks.Add(element, e =>
                 {
-                    _path.Points[index] = e.newValue;
+                    _path.Points.Local[index] = e.newValue;
                     SceneView.lastActiveSceneView.Repaint();
                 });
 
@@ -415,14 +415,14 @@ namespace Paths
 
             while (t < 1f)
             {
-                var position = Path.CalculatePoint(t, p0, p1, p2, p3);
+                var position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
                 DrawLine(lastPosition, position, color, useDotted);
 
                 lastPosition = position;
                 t += step;
             }
 
-            DrawLine(lastPosition, Path.CalculatePoint(1f, p0, p1, p2, p3), color, useDotted);
+            DrawLine(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3), color, useDotted);
         }
 
         private void DrawRoot()
@@ -458,12 +458,12 @@ namespace Paths
 
             if (_selectedPointIndex != number)
             {
-                removeRect = GetPointRectInSceneView(_path.Points[number], 16f, true);
+                removeRect = GetPointRectInSceneView(_path.Points.Local[number], 16f, true);
                 removeRect.y -= isControl ? 30f : 24f;
 
                 if (needDrawRemoveButton = Vector2.Distance(Event.current.mousePosition, removeRect.center) <= 20f)
                 {
-                    var pointCenter = GetPointRectInSceneView(_path.Points[number], 24f, true).center;
+                    var pointCenter = GetPointRectInSceneView(_path.Points.Local[number], 24f, true).center;
                     var endCenter = removeRect.center;
                     endCenter.x -= 1f;
 
@@ -472,17 +472,17 @@ namespace Paths
                 }
             }
 
-            GUI.DrawTexture(GetPointRectInSceneView(_path.Points[number], 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+            GUI.DrawTexture(GetPointRectInSceneView(_path.Points.Local[number], 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
 
             if (isControl)
-                GUI.DrawTexture(GetPointRectInSceneView(_path.Points[number], 36f, true), _textures["dotted circle"]);
+                GUI.DrawTexture(GetPointRectInSceneView(_path.Points.Local[number], 36f, true), _textures["dotted circle"]);
 
             if (drawBlackDot)
-                GUI.DrawTexture(GetPointRectInSceneView(_path.Points[number], 8f, true), _textures["black circle"]);
+                GUI.DrawTexture(GetPointRectInSceneView(_path.Points.Local[number], 8f, true), _textures["black circle"]);
 
             if (drawLabel)
             {
-                var labelRect = GetPointRectInSceneView(_path.Points[number], 24f, true);
+                var labelRect = GetPointRectInSceneView(_path.Points.Local[number], 24f, true);
                 if (number.ToString().Length != 2)
                     labelRect.x += 1;
 
@@ -490,7 +490,7 @@ namespace Paths
 
             }
 
-            if (_selectedPointIndex != number && GUI.Button(GetPointRectInSceneView(_path.Points[number], 24f, true), "", _skin.button))
+            if (_selectedPointIndex != number && GUI.Button(GetPointRectInSceneView(_path.Points.Local[number], 24f, true), "", _skin.button))
                 SelectPointInListView(number);
 
             if (_selectedPointIndex != number && needDrawRemoveButton)
@@ -518,12 +518,12 @@ namespace Paths
 
             if (_selectedPointIndex == number)
             {
-                var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.Points[number]), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
+                var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.Points.Local[number]), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
 
-                if (NearlyEquals(Vector3.Distance(newPos, _path.Points[number]), 0f, 0.000001f))
+                if (NearlyEquals(Vector3.Distance(newPos, _path.Points.Local[number]), 0f, 0.000001f))
                     return;
 
-                _path.Points[number] = newPos;
+                _path.Points.Local[number] = newPos;
             }
         }
 
@@ -553,16 +553,16 @@ namespace Paths
 
         private void DrawLastAddButton()
         {
-            var direction = (_path.Points[_path.Points.Count - 1] - _path.Points[_path.Points.Count - 2]).normalized;
+            var direction = (_path.Points.Local[_path.Points.Count - 1] - _path.Points.Local[_path.Points.Count - 2]).normalized;
 
             var averageDistance = 0f;
             for (int i = 0; i < _path.Points.Count - 1; i++)
-                averageDistance += Vector3.Distance(_path.Points[i], _path.Points[i + 1]);
+                averageDistance += Vector3.Distance(_path.Points.Local[i], _path.Points.Local[i + 1]);
 
             direction *= averageDistance / (_path.Points.Count - 1);
-            var localPos = _path.Points[_path.Points.Count - 1] + direction;
+            var localPos = _path.Points.Local[_path.Points.Count - 1] + direction;
 
-            DrawLine(_path.GetGlobalPoint(_path.Points.Count - 1), TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
+            DrawLine(_path.Points.Global[_path.Points.Count - 1], TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
 
             Handles.BeginGUI();
             GUI.DrawTexture(GetPointRectInSceneView(localPos, 24f, true), _textures["blue circle"]);
@@ -589,7 +589,7 @@ namespace Paths
 
         private void DrawTwoPoints()
         {
-            DrawLine(_path.GetGlobalPoint(0), _path.GetGlobalPoint(1), Color.yellow);
+            DrawLine(_path.Points.Global[0], _path.Points.Global[1], Color.yellow);
             DrawRoot();
             DrawPoint(0, false, false, true);
             DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 1);
@@ -599,13 +599,13 @@ namespace Paths
 
         private void DrawThreePoints()
         {
-            DrawCatmullRomLine(_path.GetGlobalPoint(2), _path.GetGlobalPoint(0), _path.GetGlobalPoint(1), _path.GetGlobalPoint(2), Color.yellow);
-            DrawCatmullRomLine(_path.GetGlobalPoint(0), _path.GetGlobalPoint(1), _path.GetGlobalPoint(2), _path.GetGlobalPoint(0), Color.yellow);
+            DrawCatmullRomLine(_path.Points.Global[2], _path.Points.Global[0], _path.Points.Global[1], _path.Points.Global[2], Color.yellow);
+            DrawCatmullRomLine(_path.Points.Global[0], _path.Points.Global[1], _path.Points.Global[2], _path.Points.Global[0], Color.yellow);
 
             if (!_path.Looped)
-                DrawCatmullRomLine(_path.GetGlobalPoint(1), _path.GetGlobalPoint(2), _path.GetGlobalPoint(0), _path.GetGlobalPoint(1), Color.white, true);
+                DrawCatmullRomLine(_path.Points.Global[1], _path.Points.Global[2], _path.Points.Global[0], _path.Points.Global[1], Color.white, true);
             else
-                DrawCatmullRomLine(_path.GetGlobalPoint(1), _path.GetGlobalPoint(2), _path.GetGlobalPoint(0), _path.GetGlobalPoint(1), Color.yellow);
+                DrawCatmullRomLine(_path.Points.Global[1], _path.Points.Global[2], _path.Points.Global[0], _path.Points.Global[1], Color.yellow);
 
             DrawRoot();
             DrawPoint(0, !_path.Looped, false, true);
@@ -622,18 +622,18 @@ namespace Paths
         private void DrawManyPoints()
         {
             for (int i = 0; i < _path.Points.Count - 3; i++)
-                DrawCatmullRomLine(_path.GetGlobalPoint(i), _path.GetGlobalPoint(i + 1), _path.GetGlobalPoint(i + 2), _path.GetGlobalPoint(i + 3), Color.yellow);
+                DrawCatmullRomLine(_path.Points.Global[i], _path.Points.Global[i + 1], _path.Points.Global[i + 2], _path.Points.Global[i + 3], Color.yellow);
 
             if (_path.Looped)
             {
-                DrawCatmullRomLine(_path.GetGlobalPoint(_path.Points.Count - 3), _path.GetGlobalPoint(_path.Points.Count - 2), _path.GetGlobalPoint(_path.Points.Count - 1), _path.GetGlobalPoint(0), Color.yellow);
-                DrawCatmullRomLine(_path.GetGlobalPoint(_path.Points.Count - 2), _path.GetGlobalPoint(_path.Points.Count - 1), _path.GetGlobalPoint(0), _path.GetGlobalPoint(1), Color.yellow);
-                DrawCatmullRomLine(_path.GetGlobalPoint(_path.Points.Count - 1), _path.GetGlobalPoint(0), _path.GetGlobalPoint(1), _path.GetGlobalPoint(2), Color.yellow);
+                DrawCatmullRomLine(_path.Points.Global[_path.Points.Count - 3], _path.Points.Global[_path.Points.Count - 2], _path.Points.Global[_path.Points.Count - 1], _path.Points.Global[0], Color.yellow);
+                DrawCatmullRomLine(_path.Points.Global[_path.Points.Count - 2], _path.Points.Global[_path.Points.Count - 1], _path.Points.Global[0], _path.Points.Global[1], Color.yellow);
+                DrawCatmullRomLine(_path.Points.Global[_path.Points.Count - 1], _path.Points.Global[0], _path.Points.Global[1], _path.Points.Global[2], Color.yellow);
             }
             else
             {
-                DrawLine(_path.GetGlobalPoint(_path.Points.Count - 2), _path.GetGlobalPoint(_path.Points.Count - 1), Color.white, true);
-                DrawLine(_path.GetGlobalPoint(0), _path.GetGlobalPoint(1), Color.white, true);
+                DrawLine(_path.Points.Global[_path.Points.Count - 2], _path.Points.Global[_path.Points.Count - 1], Color.white, true);
+                DrawLine(_path.Points.Global[0], _path.Points.Global[1], Color.white, true);
             }
 
 

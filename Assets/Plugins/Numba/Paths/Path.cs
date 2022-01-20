@@ -11,9 +11,9 @@ namespace Paths
     public class Path : MonoBehaviour
     {
         [SerializeField]
-        private List<Vector3> _points;
+        private Points _points;
 
-        public List<Vector3> Points => _points;
+        public Points Points => _points;
 
         public int SegmentsCount
         {
@@ -50,6 +50,7 @@ namespace Paths
             set => _looped = value;
         }
 
+        #region Editor
 #if UNITY_EDITOR
         [MenuItem("GameObject/3D Object/Path", priority = 19)]
         private static void CreatePathFromMenu()
@@ -57,11 +58,8 @@ namespace Paths
             var path = new GameObject("Path").AddComponent<Path>();
             path.transform.SetParent(Selection.activeTransform);
 
-            path._points = new List<Vector3>()
-            {
-                new Vector3(-0.5f, 0f, 0f),
-                new Vector3(0.5f, 0f, 0f)
-            };
+            path._points = new Points(path);
+            path._points.Local.AddRange(new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f));
 
             Selection.activeObject = path;
         }
@@ -77,71 +75,8 @@ namespace Paths
             else
                 return index;
         }
-
-        private void OnDrawGizmosSelected()
-        {
-            //Gizmos.color = Color.yellow;
-
-            //if (_points.Count == 2)
-            //    DrawTwoPoints();
-            //else if (_points.Count == 3) 
-            //    DrawThreePoints();
-            //else if (_points.Count >= 4)
-            //    DrawPoints();
-
-            //for (int i = 0; i < Points.Count; i++)
-            //{
-            //    if (!_looped && (i == 0 || i == Points.Count - 2 || i == Points.Count - 1))
-            //        continue;
-
-            //    var p0 = TransformPoint(Points[WrapIndex(i - 1)]);
-            //    var p1 = TransformPoint(Points[WrapIndex(i)]);
-            //    var p2 = TransformPoint(Points[WrapIndex(i + 1)]);
-            //    var p3 = TransformPoint(Points[WrapIndex(i + 2)]);
-
-            //    var t = 0f;
-            //    var lastPosition = p1;
-
-            //    while (t < 1f)
-            //    {
-            //        var position = GetPoint(t, p0, p1, p2, p3);
-            //        Gizmos.DrawLine(lastPosition, position);
-
-            //        lastPosition = position;
-            //        t += step;
-            //    }
-
-            //    Gizmos.DrawLine(lastPosition, GetPoint(1f, p0, p1, p2, p3));
-            //}
-
-            //if (!_looped)
-            //{
-            //    Handles.color = Color.white;
-            //    Handles.DrawDottedLine(TransformPoint(Points[0]), TransformPoint(Points[1]), 5f);
-            //    Handles.DrawDottedLine(TransformPoint(Points[Points.Count - 2]), TransformPoint(Points[Points.Count - 1]), 5f);
-            //}
-        }
 #endif
-
-        /// <summary>
-        /// Calculate CatmullRom point by 2 controls and 2 end points.
-        /// <br/> See <see href="https://www.habrador.com/tutorials/interpolation/1-catmull-rom-splines/"/>
-        /// </summary>
-        /// <param name="t">Value between <see langword="0"/> and <see langword="1"/> which represent normalized distance from <paramref name="startPoint"/> to <paramref name="endPoint"/> when draw line.</param>
-        /// <param name="startControlPoint">Start control point.</param>
-        /// <param name="startPoint">Line start position.</param>
-        /// <param name="endPoint">Line end position.</param>
-        /// <param name="endControlPoint">End control point.</param>
-        /// <returns>Calculated line point.</returns>
-        public static Vector3 CalculatePoint(float t, Vector3 startControlPoint, Vector3 startPoint, Vector3 endPoint, Vector3 endControlPoint)
-        {
-            Vector3 a = 2f * startPoint;
-            Vector3 b = endPoint - startControlPoint;
-            Vector3 c = 2f * startControlPoint - 5f * startPoint + 4f * endPoint - endControlPoint;
-            Vector3 d = -startControlPoint + 3f * startPoint - 3f * endPoint + endControlPoint;
-
-            return 0.5f * (a + (b * t) + (t * t * c) + (t * t * t * d));
-        }
+        #endregion
 
         public void OptimizeResolutionByAngle(float maxAngle = 8f)
         {
@@ -161,16 +96,15 @@ namespace Paths
                 return;
             }
 
-            var lastAppropriateSegment = -1;
-
-            for (int i = 3; i <= 128; i++)
+            for (int i = 3; i <= 128;)
             {
                 _resolution = i;
                 var step = 1f / _resolution;
 
                 var lastVector = (GetPoint(0, step) - GetPoint(0, 0f)).normalized;
+                var maxAngleByResolution = 0f;
 
-                for (int j = lastAppropriateSegment + 1; j < SegmentsCount; j++)
+                for (int j = 0; j < SegmentsCount; j++)
                 {
                     var t = step;
                     var lastPosition = GetPoint(j, 0f);
@@ -182,14 +116,8 @@ namespace Paths
                     {
                         if (CheckAngle(j, t, lastPosition, lastVector, out position, out vector, out angle))
                         {
-                            if (angle >= 135f)
-                                i += 16;
-                            else if (angle >= 90)
-                                i += 8;
-                            else if (angle >= 45f)
-                                i += 4;
-
-                            goto ResolutionLoopEnd;
+                            if (angle > maxAngleByResolution)
+                                maxAngleByResolution = angle;
                         }
 
                         lastPosition = position;
@@ -199,24 +127,38 @@ namespace Paths
 
                     if (CheckAngle(j, 1f, lastPosition, lastVector, out position, out vector, out angle))
                     {
-                        if (angle >= 135f)
-                            i += 16;
-                        else if (angle >= 90)
-                            i += 8;
-                        else if (angle >= 45f)
-                            i += 4;
-
-                        goto ResolutionLoopEnd;
+                        if (angle > maxAngleByResolution)
+                            maxAngleByResolution = angle;
                     }
 
                     lastVector = vector;
-                    lastAppropriateSegment = j;
+                }
+
+                if (maxAngleByResolution > maxAngle)
+                {
+                    var excess = maxAngleByResolution - maxAngle;
+                    //Debug.Log($"Excess: {excess}");
+
+                    if (excess > 135f)
+                        i += 32;
+                    else if (excess > 90f)
+                        i += 24;
+                    else if (excess > 45f)
+                        i += 16;
+                    else if (excess > 15f)
+                        i += 8;
+                    else if (excess > 10f)
+                        i += 4;
+                    else if (excess > 5f)
+                        i += 2;
+                    else
+                        i += 1;
+
+                    continue;
                 }
 
                 // Reaching this code means, that all segments are fairly smooth.
                 break;
-
-            ResolutionLoopEnd:;
             }
 
             Debug.Log(Environment.TickCount - ticks);
@@ -235,7 +177,7 @@ namespace Paths
                 if (!_looped && segment > 0 || _looped && segment > 1)
                     throw new Exception($"Segment {segment} not exist.");
 
-                return Vector3.Distance(_points[0], _points[1]);
+                return Vector3.Distance(_points.Local[0], _points.Local[1]);
             }
 
             if (_points.Count == 3)
@@ -259,23 +201,23 @@ namespace Paths
             var t = 0f;
             var step = 1f / _resolution;
 
-            var lastPosition = _points[segment];
+            var lastPosition = _points.Local[segment];
 
-            var p0 = _points[WrapIndex(segment - 1)];
-            var p1 = _points[segment];
-            var p2 = _points[WrapIndex(segment + 1)];
-            var p3 = _points[WrapIndex(segment + 2)];
+            var p0 = _points.Local[WrapIndex(segment - 1)];
+            var p1 = _points.Local[segment];
+            var p2 = _points.Local[WrapIndex(segment + 1)];
+            var p3 = _points.Local[WrapIndex(segment + 2)];
 
             while (t < 1f)
             {
-                var position = CalculatePoint(t, p0, p1, p2, p3);
+                var position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
                 length += Vector3.Distance(lastPosition, position);
 
                 lastPosition = position;
                 t += step;
             }
 
-            return length += Vector3.Distance(lastPosition, CalculatePoint(1f, p0, p1, p2, p3));
+            return length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
         }
 
         public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true)
@@ -284,7 +226,7 @@ namespace Paths
                 throw new Exception("Path does not contain points.");
 
             if (_points.Count == 1)
-                return TransformPoint(_points[0]);
+                return _points.Global[0];
 
             var length = GetSegmentLength(segment);
             distance = Mathf.Clamp(useNormalizedDistance ? length * distance : distance, 0f, length);
@@ -292,7 +234,7 @@ namespace Paths
             if (_points.Count == 2)
             {
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
-                return TransformPoint(_points[from] + (_points[to] - _points[from]).normalized * distance);
+                return transform.TransformPoint(_points.Local[from] + (_points.Local[to] - _points.Local[from]).normalized * distance);
             }
 
             if (_points.Count > 3 && !_looped)
@@ -301,46 +243,40 @@ namespace Paths
             // For 3 and more points..
 
             if (distance == 0f)
-                return TransformPoint(_points[segment]);
+                return _points.Global[segment];
             else if (distance == length)
-                return TransformPoint(_points[WrapIndex(segment + 1)]);
+                return _points.Global[WrapIndex(segment + 1)];
 
             var step = 1f / _resolution;
             var t = step;
 
-            var lastPosition = _points[segment];
+            var lastPosition = _points.Local[segment];
 
-            var p0 = _points[WrapIndex(segment - 1)];
-            var p1 = _points[segment];
-            var p2 = _points[WrapIndex(segment + 1)];
-            var p3 = _points[WrapIndex(segment + 2)];
+            var p0 = _points.Local[WrapIndex(segment - 1)];
+            var p1 = _points.Local[segment];
+            var p2 = _points.Local[WrapIndex(segment + 1)];
+            var p3 = _points.Local[WrapIndex(segment + 2)];
 
             Vector3 position;
             float currentLength;
 
             while (t < 1f)
             {
-                position = CalculatePoint(t, p0, p1, p2, p3);
+                position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
                 currentLength = Vector3.Distance(lastPosition, position);
 
                 if (distance <= currentLength)
-                    return TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
+                    return transform.TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
 
                 distance -= currentLength;
                 lastPosition = position;
                 t += step;
             }
 
-            position = CalculatePoint(1f, p0, p1, p2, p3);
+            position = CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3);
             currentLength = Vector3.Distance(lastPosition, position);
 
-            return TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
+            return transform.TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
         }
-
-        private Vector3 TransformPoint(Vector3 point) => transform.TransformPoint(point);
-
-        public Vector3 GetGlobalPoint(int index) => TransformPoint(_points[index]);
-
-        public void SetGlobalPoint(int index, Vector3 point) => _points[index] = point - transform.position;
     }
 }
