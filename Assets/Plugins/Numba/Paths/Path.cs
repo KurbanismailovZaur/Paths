@@ -15,7 +15,22 @@ namespace Paths
 
         public List<Vector3> Points => _points;
 
-        //public int SegmentsCount => 
+        public int SegmentsCount
+        {
+            get
+            {
+                if (_points.Count < 2)
+                    return 0;
+
+                if (_points.Count == 2)
+                    return _looped ? 2 : 1;
+
+                if (_points.Count == 3)
+                    return _looped ? 3 : 2;
+
+                return _looped ? _points.Count : _points.Count - 3;
+            }
+        }
 
         [SerializeField]
         private int _resolution = 1;
@@ -130,45 +145,81 @@ namespace Paths
 
         public void OptimizeResolutionByAngle(float maxAngle = 8f)
         {
+            bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out Vector3 position, out Vector3 vector, out float angle)
+            {
+                position = GetPoint(segment, t);
+                vector = (position - lastPosition).normalized;
+
+                return (angle = Vector3.Angle(lastVector, vector)) > maxAngle;
+            }
+
+            var ticks = Environment.TickCount;
+
             if (_points.Count < 3)
             {
                 _resolution = 1;
                 return;
             }
 
-            if (_points.Count == 3)
-            {
-                var maxPointsAngle = 0f;
-                var lastVector = (_points[1] - _points[0]).normalized;
+            var lastAppropriateSegment = -1;
 
-                for (int i = 1; i < _points.Count - 1; i++)
-                {
-                    var newVector = (_points[i + 1] - _points[i]).normalized;
-
-                    var angle = Vector3.Angle(lastVector, newVector);
-                    if (angle > maxPointsAngle)
-                        maxPointsAngle = angle;
-
-                    lastVector = newVector;
-                }
-
-                if (_looped)
-                {
-                    var newVector = (_points[0] - _points[_points.Count - 1]).normalized;
-
-                    var angle = Vector3.Angle(lastVector, newVector);
-                    if (angle > maxPointsAngle)
-                        maxPointsAngle = angle;
-                }
-            }
-
-
-
-            for (int i = 2; i <= 128; i++)
+            for (int i = 3; i <= 128; i++)
             {
                 _resolution = i;
+                var step = 1f / _resolution;
 
+                var lastVector = (GetPoint(0, step) - GetPoint(0, 0f)).normalized;
+
+                for (int j = lastAppropriateSegment + 1; j < SegmentsCount; j++)
+                {
+                    var t = step;
+                    var lastPosition = GetPoint(j, 0f);
+
+                    Vector3 position, vector;
+                    float angle;
+
+                    while (t < 1f)
+                    {
+                        if (CheckAngle(j, t, lastPosition, lastVector, out position, out vector, out angle))
+                        {
+                            if (angle >= 135f)
+                                i += 16;
+                            else if (angle >= 90)
+                                i += 8;
+                            else if (angle >= 45f)
+                                i += 4;
+
+                            goto ResolutionLoopEnd;
+                        }
+
+                        lastPosition = position;
+                        lastVector = vector;
+                        t += step;
+                    }
+
+                    if (CheckAngle(j, 1f, lastPosition, lastVector, out position, out vector, out angle))
+                    {
+                        if (angle >= 135f)
+                            i += 16;
+                        else if (angle >= 90)
+                            i += 8;
+                        else if (angle >= 45f)
+                            i += 4;
+
+                        goto ResolutionLoopEnd;
+                    }
+
+                    lastVector = vector;
+                    lastAppropriateSegment = j;
+                }
+
+                // Reaching this code means, that all segments are fairly smooth.
+                break;
+
+            ResolutionLoopEnd:;
             }
+
+            Debug.Log(Environment.TickCount - ticks);
         }
 
         public float GetSegmentLength(int segment)
@@ -254,8 +305,8 @@ namespace Paths
             else if (distance == length)
                 return TransformPoint(_points[WrapIndex(segment + 1)]);
 
-            var t = 0f;
             var step = 1f / _resolution;
+            var t = step;
 
             var lastPosition = _points[segment];
 

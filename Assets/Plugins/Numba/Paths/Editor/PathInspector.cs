@@ -294,11 +294,9 @@ namespace Paths
 
             _selectedPointIndex = -1;
 
-            //_foldout.RegisterValueChangedCallback(e => UpdatePointsAddGroup());
-
             _pointsAddGroupBox.Q<Button>().clicked += () =>
             {
-                AddElement(0, _path.transform.position);
+                AddElement(0, Vector3.zero);
                 _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
             };
 
@@ -410,8 +408,8 @@ namespace Paths
 
         private void DrawCatmullRomLine(Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3, Color color, bool useDotted = false)
         {
-            var t = 0f;
             var step = 1f / _path.Resolution;
+            var t = step;
 
             var lastPosition = p1;
 
