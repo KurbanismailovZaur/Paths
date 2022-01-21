@@ -161,7 +161,7 @@ namespace Paths
         private Path _path;
 
         [SerializeField]
-        private readonly List<Vector3> _points = new();
+        private List<Vector3> _points;
 
         public int Count => _points.Count;
 
@@ -169,12 +169,17 @@ namespace Paths
 
         public GlobalPoints Global { get; private set; }
 
-        public Points(Path path)
+        // Called by serialization system.
+        private Points()
         {
-            _path = path;
-
             Local = new LocalPoints(this);
             Global = new GlobalPoints(this);
+        }
+
+        public Points(Path path) : this()
+        {
+            _path = path;
+            _points = new List<Vector3>();
         }
 
         public void RemoveAt(int index) => _points.RemoveAt(index);
