@@ -1684,7 +1684,7 @@ MonoBehaviour:
     m_FixedHeight: 0
     m_StretchWidth: 1
     m_StretchHeight: 0
-  - m_Name: lastaddbutton
+  - m_Name: whiteaddbutton
     m_Normal:
       m_Background: {fileID: 0}
       m_ScaledBackgrounds: []

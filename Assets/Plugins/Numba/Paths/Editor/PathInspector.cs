@@ -129,8 +129,7 @@ namespace Paths
             _textures.Add("white circle", Resources.Load<Texture>("Numba/Paths/Textures/WhiteCircle"));
             _textures.Add("red circle", Resources.Load<Texture>("Numba/Paths/Textures/RedCircle"));
             _textures.Add("blue circle", Resources.Load<Texture>("Numba/Paths/Textures/BlueCircle"));
-            _textures.Add("cross", Resources.Load<Texture>("Numba/Paths/Textures/Cross"));
-            _textures.Add("red cross", Resources.Load<Texture>("Numba/Paths/Textures/RedCross"));
+            _textures.Add("white cross", Resources.Load<Texture>("Numba/Paths/Textures/WhiteCross"));
             _textures.Add("red rect", Resources.Load<Texture>("Numba/Paths/Textures/RedRect"));
         }
 
@@ -498,7 +497,7 @@ namespace Paths
                 GUI.DrawTexture(removeRect, _textures["red circle"]);
 
                 var crossRect = new Rect(removeRect.x + 4f, removeRect.y + 4f, 8f, 8f);
-                GUI.DrawTexture(crossRect, _textures["cross"]);
+                GUI.DrawTexture(crossRect, _textures["white cross"]);
 
                 if (GUI.Button(removeRect, "", _skin.button))
                 {
@@ -530,18 +529,18 @@ namespace Paths
         private void DrawAdjacentAddButton(Vector3 position, int insertTo)
         {
             Handles.BeginGUI();
-            GUI.DrawTexture(GetPointRectInSceneView(position, 6f), _textures["white circle"]);
+            GUI.DrawTexture(GetPointRectInSceneView(position, 4f), _textures["white circle"]);
             Handles.EndGUI();
 
             if (Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(position)) > 20f)
                 return;
 
             Handles.BeginGUI();
-            GUI.DrawTexture(GetPointRectInSceneView(position, 24f), _textures["white circle"]);
+            GUI.DrawTexture(GetPointRectInSceneView(position, 24f), _textures["blue circle"]);
 
             var labelRect = GetPointRectInSceneView(position, 24f);
             labelRect.y -= 2f;
-            GUI.Label(labelRect, "+", _skin.customStyles[3]);
+            GUI.Label(labelRect, "+", _skin.customStyles[5]);
 
             if (GUI.Button(GetPointRectInSceneView(position, 24f), "", _skin.button))
                 _pointsToAdd.Add(() => AddElement(insertTo, _path.transform.InverseTransformPoint(position)));

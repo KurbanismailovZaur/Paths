@@ -10,6 +10,67 @@ namespace Paths
 {
     public class Path : MonoBehaviour
     {
+        #region Segments length calculators
+        private abstract class SegmentLengthCalculator
+        {
+            protected Path _path;
+
+            public SegmentLengthCalculator(Path path) => _path = path;
+
+            public abstract void CalculateLength(int segment);
+        }
+
+        private class ZeroSegmentsCalculator : SegmentLengthCalculator
+        {
+            public ZeroSegmentsCalculator(Path path) : base(path) { }
+
+            public override void CalculateLength(int segment) { }
+        }
+
+        private class OneSegmentsCalculator : SegmentLengthCalculator
+        {
+            public OneSegmentsCalculator(Path path) : base(path) { }
+
+            public override void CalculateLength(int segment) => _path._segments[segment] = 0f;
+        }
+
+        private class TwoSegmentsCalculator : SegmentLengthCalculator
+        {
+            public TwoSegmentsCalculator(Path path) : base(path) { }
+
+            public override void CalculateLength(int segment) => _path._segments[segment] = Vector3.Distance(_path._points[0], _path._points[1]);
+        }
+
+        private class ManySegmentsCalculator : SegmentLengthCalculator
+        {
+            public ManySegmentsCalculator(Path path) : base(path) { }
+
+            public override void CalculateLength(int segment)
+            {
+                var length = 0f;
+
+                var t = 0f;
+                var lastPosition = _path._points[segment];
+
+                var p0 = _path._points[_path.WrapIndex(segment - 1)];
+                var p1 = _path._points[segment];
+                var p2 = _path._points[_path.WrapIndex(segment + 1)];
+                var p3 = _path._points[_path.WrapIndex(segment + 2)];
+
+                while (t < 1f)
+                {
+                    var position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
+                    length += Vector3.Distance(lastPosition, position);
+
+                    lastPosition = position;
+                    t += _path._step;
+                }
+
+                _path._segments[segment] = length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
+            }
+        }
+        #endregion
+
         [SerializeField]
         private List<Vector3> _points = new();
 
@@ -25,15 +86,14 @@ namespace Paths
                 if (_points.Count < 2)
                     return 0;
 
-                if (_points.Count == 2)
-                    return _looped ? 2 : 1;
-
-                if (_points.Count == 3)
-                    return _looped ? 3 : 2;
-
-                return _looped ? _points.Count : _points.Count - 3;
+                return _looped ? _points.Count : _points.Count - (_points.Count < 4 ? 1 : 3);
             }
         }
+
+        private SegmentLengthCalculator[] _segmentCalculators;
+
+        [SerializeField]
+        private int _segmentCalculatorIndex;
 
         [SerializeField]
         private int _resolution = 1;
@@ -43,9 +103,16 @@ namespace Paths
             get => _resolution;
             set
             {
-                _resolution = Math.Clamp(value, 1, 128);
+                _resolution = Math.Clamp(value, 1, 100);
+                _step = 1f / _resolution;
+
+                RecalculateAllSegments();
             }
         }
+
+        [SerializeField]
+        [HideInInspector]
+        private float _step = 1f;
 
         [SerializeField]
         private bool _looped;
@@ -56,7 +123,14 @@ namespace Paths
             set => _looped = value;
         }
 
-        private Path() { }
+        // Used by serialization system.
+        private Path() => _segmentCalculators = new SegmentLengthCalculator[]
+        {
+            new ZeroSegmentsCalculator(this),
+            new OneSegmentsCalculator(this),
+            new TwoSegmentsCalculator(this),
+            new ManySegmentsCalculator(this)
+        };
 
         public static Path Create() => new GameObject("Path").AddComponent<Path>();
 
@@ -68,25 +142,17 @@ namespace Paths
             var path = Create();
             path.transform.SetParent(Selection.activeTransform);
 
-            path._points.Add(new Vector3(-0.5f, 0f, 0f));
-            path._points.Add(new Vector3(0.5f, 0f, 0f));
+            path.AddPoint(new Vector3(-0.5f, 0f, 0f));
+            path.AddPoint(new Vector3(0.5f, 0f, 0f));
 
             Selection.activeObject = path;
         }
 
-        private int WrapIndex(int index)
-        {
-            if (index < 0)
-                return _points.Count - 1;
-            else if (index == _points.Count)
-                return 0;
-            else if (index == _points.Count + 1)
-                return 1;
-            else
-                return index;
-        }
+        private int WrapIndex(int index) => (((index - 0) % (_points.Count - 0)) + (_points.Count - 0)) % (_points.Count - 0) + 0;
 #endif
         #endregion
+
+        private SegmentLengthCalculator GetCurrentSegmentCalculator() => _segmentCalculators[_segmentCalculatorIndex];
 
         public void OptimizeResolutionByAngle(float maxAngle = 8f)
         {
@@ -102,21 +168,43 @@ namespace Paths
 
             if (_points.Count < 3)
             {
-                Resolution = 1;
+                _resolution = 1;
                 return;
             }
 
-            for (int i = 3; i <= 128;)
+            var currentSegment = 0;
+
+            for (int i = 3; i <= 100; i++)
             {
-                Resolution = i;
-                var step = 1f / Resolution;
+                _resolution = i;
+                _step = 1f / _resolution;
 
-                var lastVector = (GetPoint(0, step) - GetPoint(0, 0f)).normalized;
-                var maxAngleByResolution = 0f;
+                Vector3 lastVector;
 
-                for (int j = 0; j < SegmentsCount; j++)
+                GetCurrentSegmentCalculator().CalculateLength(currentSegment);
+                var prevSegment = currentSegment - 1;
+
+                if (_looped)
                 {
-                    var t = step;
+                    prevSegment = WrapIndex(prevSegment);
+                    GetCurrentSegmentCalculator().CalculateLength(prevSegment);
+
+                    lastVector = (GetPoint(currentSegment, 0f) - GetPoint(prevSegment, 1f - _step)).normalized;
+                }
+                else
+                {
+                    if (currentSegment == 0)
+                        lastVector = (GetPoint(currentSegment, _step) - GetPoint(currentSegment, 0f)).normalized;
+                    else
+                    {
+                        GetCurrentSegmentCalculator().CalculateLength(prevSegment);
+                        lastVector = (GetPoint(currentSegment, 0f) - GetPoint(prevSegment, 1f - _step)).normalized;
+                    }
+                }
+
+                for (int j = currentSegment; j < SegmentsCount; j++)
+                {
+                    var t = _step;
                     var lastPosition = GetPoint(j, 0f);
 
                     Vector3 position, vector;
@@ -125,55 +213,33 @@ namespace Paths
                     while (t < 1f)
                     {
                         if (CheckAngle(j, t, lastPosition, lastVector, out position, out vector, out angle))
-                        {
-                            if (angle > maxAngleByResolution)
-                                maxAngleByResolution = angle;
-                        }
+                            goto ResolutionCycle;
 
                         lastPosition = position;
                         lastVector = vector;
-                        t += step;
+                        t += _step;
                     }
 
                     if (CheckAngle(j, 1f, lastPosition, lastVector, out position, out vector, out angle))
-                    {
-                        if (angle > maxAngleByResolution)
-                            maxAngleByResolution = angle;
-                    }
+                        goto ResolutionCycle;
 
                     lastVector = vector;
-                }
 
-                if (maxAngleByResolution > maxAngle)
-                {
-                    var excess = maxAngleByResolution - maxAngle;
-                    //Debug.Log($"Excess: {excess}");
-
-                    if (excess > 135f)
-                        i += 32;
-                    else if (excess > 90f)
-                        i += 24;
-                    else if (excess > 45f)
-                        i += 16;
-                    else if (excess > 15f)
-                        i += 8;
-                    else if (excess > 10f)
-                        i += 4;
-                    else if (excess > 5f)
-                        i += 2;
-                    else
-                        i += 1;
-
-                    continue;
+                    if (++currentSegment < SegmentsCount)
+                        GetCurrentSegmentCalculator().CalculateLength(currentSegment);
                 }
 
                 // Reaching this code means, that all segments are fairly smooth.
                 break;
+
+            ResolutionCycle:;
             }
 
-            Debug.Log(Environment.TickCount - ticks);
+            RecalculateAllSegments();
+            Debug.Log($"Ticks: {Environment.TickCount - ticks}");
         }
 
+        #region Transforms
         private void CheckAndTransformPointToLocal(ref Vector3 point, bool useGlobal)
         {
             if (useGlobal)
@@ -184,17 +250,64 @@ namespace Paths
         {
             return useGlobal ? transform.TransformPoint(_points[index]) : _points[index];
         }
+        #endregion
+
+        private void SetNewSegmentsCalculator() => _segmentCalculatorIndex = _segments.Count < 3 ? _segments.Count : 3;
+
+        private void RecalculateAllSegments()
+        {
+            for (int i = 0; i < _segments.Count; i++)
+                GetCurrentSegmentCalculator().CalculateLength(i);
+        }
+
+        public float GetSegmentLength(int segment)
+        {
+            if (_points.Count < 2)
+                throw new Exception($"Segment {segment} not exist.");
+
+            if (!_looped && segment > _points.Count - (_points.Count < 4 ? 2 : 4) || _looped && segment > _points.Count - 1)
+                throw new Exception($"Segment {segment} not exist.");
+
+            if (_points.Count > 3 && !_looped)
+                segment += 1;
+
+            return _segments[segment];
+        }
 
         public void AddPoint(Vector3 point, bool useGlobal = true)
         {
             CheckAndTransformPointToLocal(ref point, useGlobal);
+
             _points.Add(point);
+            _segments.Add(0f);
+
+            SetNewSegmentsCalculator();
+
+            if (_segments.Count < 5)
+                RecalculateAllSegments();
+            else
+            {
+                for (int i = _points.Count - 3; i <= _points.Count; i++)
+                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+            }
         }
 
         public void InsertPoint(int index, Vector3 point, bool useGlobal = true)
         {
             CheckAndTransformPointToLocal(ref point, useGlobal);
+
             _points.Insert(index, point);
+            _segments.Insert(index, 0f);
+
+            SetNewSegmentsCalculator();
+
+            if (_segments.Count < 5)
+                RecalculateAllSegments();
+            else
+            {
+                for (int i = index - 2; i <= index + 1; i++)
+                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+            }
         }
 
         public bool ContainsPoint(Vector3 point, bool useGlobal = true)
@@ -209,15 +322,42 @@ namespace Paths
             return _points.IndexOf(point);
         }
 
-        public void RemovePoint(Vector3 point, bool useGlobal = true)
+        public bool RemovePoint(Vector3 point, bool useGlobal = true)
         {
             CheckAndTransformPointToLocal(ref point, useGlobal);
-            _points.Remove(point);
+
+            var index = _points.IndexOf(point);
+            if (index == -1)
+                return false;
+
+            RemovePointAt(index);
+            return true;
         }
 
-        public void RemovePointAt(int index) => _points.RemoveAt(index);
+        public void RemovePointAt(int index)
+        {
+            _points.RemoveAt(index);
+            _segments.RemoveAt(index);
 
-        public void ClearPoints() => _points.Clear();
+            SetNewSegmentsCalculator();
+
+            if (_segments.Count == 0)
+                return;
+
+            if (_segments.Count < 5)
+                RecalculateAllSegments();
+            else
+            {
+                for (int i = index - 2; i <= index; i++)
+                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+            }
+        }
+
+        public void ClearPoints()
+        {
+            _points.Clear();
+            _segments.Clear();
+        }
 
         public Vector3 GetPoint(int index, bool useGlobal = true) => CheckAndTransformPointToGlobal(index, useGlobal);
 
@@ -225,62 +365,14 @@ namespace Paths
         {
             CheckAndTransformPointToLocal(ref position, useGlobal);
             _points[index] = position;
-        }
 
-        public float GetSegmentLength(int segment)
-        {
-            if (_points.Count < 2)
-                throw new Exception("There is no segments.");
-
-            if (segment < 0)
-                throw new Exception($"Segment {segment} not exist.");
-
-            if (_points.Count == 2)
+            if (_segments.Count < 5)
+                RecalculateAllSegments();
+            else
             {
-                if (!_looped && segment > 0 || _looped && segment > 1)
-                    throw new Exception($"Segment {segment} not exist.");
-
-                return Vector3.Distance(_points[0], _points[1]);
+                for (int i = index - 2; i <= index + 1; i++)
+                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
             }
-
-            if (_points.Count == 3)
-            {
-                if (!_looped && segment > 1 || _looped && segment > 2)
-                    throw new Exception($"Segment {segment} not exist.");
-            }
-            else if (_points.Count > 3)
-            {
-                if (!_looped && segment > _points.Count - 4 || _looped && segment > _points.Count - 1)
-                    throw new Exception($"Segment {segment} not exist.");
-
-                if (!_looped)
-                    segment += 1;
-            }
-
-            // For 3 and more points..
-
-            var length = 0f;
-
-            var t = 0f;
-            var step = 1f / Resolution;
-
-            var lastPosition = _points[segment];
-
-            var p0 = _points[WrapIndex(segment - 1)];
-            var p1 = _points[segment];
-            var p2 = _points[WrapIndex(segment + 1)];
-            var p3 = _points[WrapIndex(segment + 2)];
-
-            while (t < 1f)
-            {
-                var position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
-                length += Vector3.Distance(lastPosition, position);
-
-                lastPosition = position;
-                t += step;
-            }
-
-            return length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
         }
 
         public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
