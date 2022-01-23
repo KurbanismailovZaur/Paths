@@ -11,9 +11,12 @@ namespace Paths
     public class Path : MonoBehaviour
     {
         [SerializeField]
-        private Points _points;
+        private List<Vector3> _points = new();
 
-        public Points Points => _points;
+        public int PointsCount => _points.Count;
+
+        [SerializeField]
+        private List<float> _segments = new();
 
         public int SegmentsCount
         {
@@ -38,7 +41,10 @@ namespace Paths
         public int Resolution
         {
             get => _resolution;
-            set => _resolution = Math.Clamp(value, 1, 128);
+            set
+            {
+                _resolution = Math.Clamp(value, 1, 128);
+            }
         }
 
         [SerializeField]
@@ -50,16 +56,20 @@ namespace Paths
             set => _looped = value;
         }
 
+        private Path() { }
+
+        public static Path Create() => new GameObject("Path").AddComponent<Path>();
+
         #region Editor
 #if UNITY_EDITOR
         [MenuItem("GameObject/3D Object/Path", priority = 19)]
         private static void CreatePathFromMenu()
         {
-            var path = new GameObject("Path").AddComponent<Path>();
+            var path = Create();
             path.transform.SetParent(Selection.activeTransform);
 
-            path._points = new Points(path);
-            path._points.Local.AddRange(new Vector3(-0.5f, 0f, 0f), new Vector3(0.5f, 0f, 0f));
+            path._points.Add(new Vector3(-0.5f, 0f, 0f));
+            path._points.Add(new Vector3(0.5f, 0f, 0f));
 
             Selection.activeObject = path;
         }
@@ -67,10 +77,10 @@ namespace Paths
         private int WrapIndex(int index)
         {
             if (index < 0)
-                return Points.Count - 1;
-            else if (index == Points.Count)
+                return _points.Count - 1;
+            else if (index == _points.Count)
                 return 0;
-            else if (index == Points.Count + 1)
+            else if (index == _points.Count + 1)
                 return 1;
             else
                 return index;
@@ -92,14 +102,14 @@ namespace Paths
 
             if (_points.Count < 3)
             {
-                _resolution = 1;
+                Resolution = 1;
                 return;
             }
 
             for (int i = 3; i <= 128;)
             {
-                _resolution = i;
-                var step = 1f / _resolution;
+                Resolution = i;
+                var step = 1f / Resolution;
 
                 var lastVector = (GetPoint(0, step) - GetPoint(0, 0f)).normalized;
                 var maxAngleByResolution = 0f;
@@ -164,6 +174,59 @@ namespace Paths
             Debug.Log(Environment.TickCount - ticks);
         }
 
+        private void CheckAndTransformPointToLocal(ref Vector3 point, bool useGlobal)
+        {
+            if (useGlobal)
+                point = transform.InverseTransformPoint(point);
+        }
+
+        private Vector3 CheckAndTransformPointToGlobal(int index, bool useGlobal)
+        {
+            return useGlobal ? transform.TransformPoint(_points[index]) : _points[index];
+        }
+
+        public void AddPoint(Vector3 point, bool useGlobal = true)
+        {
+            CheckAndTransformPointToLocal(ref point, useGlobal);
+            _points.Add(point);
+        }
+
+        public void InsertPoint(int index, Vector3 point, bool useGlobal = true)
+        {
+            CheckAndTransformPointToLocal(ref point, useGlobal);
+            _points.Insert(index, point);
+        }
+
+        public bool ContainsPoint(Vector3 point, bool useGlobal = true)
+        {
+            CheckAndTransformPointToLocal(ref point, useGlobal);
+            return _points.Contains(point);
+        }
+
+        public int IndexOfPoint(Vector3 point, bool useGlobal = true)
+        {
+            CheckAndTransformPointToLocal(ref point, useGlobal);
+            return _points.IndexOf(point);
+        }
+
+        public void RemovePoint(Vector3 point, bool useGlobal = true)
+        {
+            CheckAndTransformPointToLocal(ref point, useGlobal);
+            _points.Remove(point);
+        }
+
+        public void RemovePointAt(int index) => _points.RemoveAt(index);
+
+        public void ClearPoints() => _points.Clear();
+
+        public Vector3 GetPoint(int index, bool useGlobal = true) => CheckAndTransformPointToGlobal(index, useGlobal);
+
+        public void SetPoint(int index, Vector3 position, bool useGlobal)
+        {
+            CheckAndTransformPointToLocal(ref position, useGlobal);
+            _points[index] = position;
+        }
+
         public float GetSegmentLength(int segment)
         {
             if (_points.Count < 2)
@@ -177,7 +240,7 @@ namespace Paths
                 if (!_looped && segment > 0 || _looped && segment > 1)
                     throw new Exception($"Segment {segment} not exist.");
 
-                return Vector3.Distance(_points.Local[0], _points.Local[1]);
+                return Vector3.Distance(_points[0], _points[1]);
             }
 
             if (_points.Count == 3)
@@ -199,14 +262,14 @@ namespace Paths
             var length = 0f;
 
             var t = 0f;
-            var step = 1f / _resolution;
+            var step = 1f / Resolution;
 
-            var lastPosition = _points.Local[segment];
+            var lastPosition = _points[segment];
 
-            var p0 = _points.Local[WrapIndex(segment - 1)];
-            var p1 = _points.Local[segment];
-            var p2 = _points.Local[WrapIndex(segment + 1)];
-            var p3 = _points.Local[WrapIndex(segment + 2)];
+            var p0 = _points[WrapIndex(segment - 1)];
+            var p1 = _points[segment];
+            var p2 = _points[WrapIndex(segment + 1)];
+            var p3 = _points[WrapIndex(segment + 2)];
 
             while (t < 1f)
             {
@@ -220,21 +283,25 @@ namespace Paths
             return length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
         }
 
-        public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true)
+        public Vector3 GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (_points.Count == 0)
                 throw new Exception("Path does not contain points.");
 
             if (_points.Count == 1)
-                return _points.Global[0];
+                return CheckAndTransformPointToGlobal(0, useGlobal);
 
             var length = GetSegmentLength(segment);
             distance = Mathf.Clamp(useNormalizedDistance ? length * distance : distance, 0f, length);
 
+            Vector3 point;
+
             if (_points.Count == 2)
             {
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
-                return transform.TransformPoint(_points.Local[from] + (_points.Local[to] - _points.Local[from]).normalized * distance);
+                point = _points[from] + (_points[to] - _points[from]).normalized * distance;
+
+                return useGlobal ? transform.TransformPoint(point) : point;
             }
 
             if (_points.Count > 3 && !_looped)
@@ -243,19 +310,19 @@ namespace Paths
             // For 3 and more points..
 
             if (distance == 0f)
-                return _points.Global[segment];
+                return CheckAndTransformPointToGlobal(segment, useGlobal);
             else if (distance == length)
-                return _points.Global[WrapIndex(segment + 1)];
+                return CheckAndTransformPointToGlobal(WrapIndex(segment + 1), useGlobal);
 
-            var step = 1f / _resolution;
+            var step = 1f / Resolution;
             var t = step;
 
-            var lastPosition = _points.Local[segment];
+            var lastPosition = _points[segment];
 
-            var p0 = _points.Local[WrapIndex(segment - 1)];
-            var p1 = _points.Local[segment];
-            var p2 = _points.Local[WrapIndex(segment + 1)];
-            var p3 = _points.Local[WrapIndex(segment + 2)];
+            var p0 = _points[WrapIndex(segment - 1)];
+            var p1 = _points[segment];
+            var p2 = _points[WrapIndex(segment + 1)];
+            var p3 = _points[WrapIndex(segment + 2)];
 
             Vector3 position;
             float currentLength;
@@ -266,7 +333,10 @@ namespace Paths
                 currentLength = Vector3.Distance(lastPosition, position);
 
                 if (distance <= currentLength)
-                    return transform.TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
+                {
+                    point = Vector3.Lerp(lastPosition, position, distance / currentLength);
+                    return useGlobal ? transform.TransformPoint(point) : point;
+                }
 
                 distance -= currentLength;
                 lastPosition = position;
@@ -276,7 +346,8 @@ namespace Paths
             position = CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3);
             currentLength = Vector3.Distance(lastPosition, position);
 
-            return transform.TransformPoint(Vector3.Lerp(lastPosition, position, distance / currentLength));
+            point = Vector3.Lerp(lastPosition, position, distance / currentLength);
+            return useGlobal ? transform.TransformPoint(point) : point;
         }
     }
 }
