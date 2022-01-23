@@ -134,6 +134,16 @@ namespace Paths
 
         public static Path Create() => new GameObject("Path").AddComponent<Path>();
 
+        public static Path Create(IEnumerable<Vector3> points)
+        {
+            var path = Create();
+
+            foreach (var point in points)
+                path.AddPoint(point);
+
+            return path;
+        }
+
         #region Editor
 #if UNITY_EDITOR
         [MenuItem("GameObject/3D Object/Path", priority = 19)]
@@ -440,6 +450,11 @@ namespace Paths
 
             point = Vector3.Lerp(lastPosition, position, distance / currentLength);
             return useGlobal ? transform.TransformPoint(point) : point;
+        }
+
+        public Vector3 GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        {
+            return Vector3.zero;
         }
     }
 }
