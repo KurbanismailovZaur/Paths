@@ -35,6 +35,10 @@ namespace Paths
 
             public void Update()
             {
+                _inspector._resolutionSlider.SetValueWithoutNotify(_inspector._path.Resolution);
+                _inspector._loopedToggle.SetValueWithoutNotify(_inspector._path.Looped);
+                _inspector._pathLengthLabel.text = $"Path length: {_inspector._path.Length}";
+
                 if (_lastPointsCount != _inspector._path.PointsCount)
                 {
                     var selectedIndex = _inspector._selectedPointIndex;
@@ -77,6 +81,12 @@ namespace Paths
 
         private Path _path;
 
+        private SliderInt _resolutionSlider;
+
+        private Toggle _loopedToggle;
+
+        private Label _pathLengthLabel;
+
         private ListView _listView;
 
         private GroupBox _pointsAddGroupBox;
@@ -114,6 +124,9 @@ namespace Paths
 
             _path = ((Path)serializedObject.targetObject);
 
+            _resolutionSlider = _inspector.Q<SliderInt>("resolution-slider");
+            _loopedToggle = _inspector.Q<Toggle>("looped-toggle");
+            _pathLengthLabel = _inspector.Q<Label>("path-length");
             _listView = _inspector.Q<ListView>("Points");
             _pointsAddGroupBox = _inspector.Q<GroupBox>("points-add-group");
             _helpLabel = _inspector.Q<Label>("help-label");
@@ -288,8 +301,16 @@ namespace Paths
             FindAllMainElements();
             LoadResources();
 
+            _resolutionSlider.RegisterValueChangedCallback(e => _path.Resolution = e.newValue);
+            _loopedToggle.RegisterValueChangedCallback(e => _path.Looped = e.newValue);
+
             var angleSlider = _inspector.Q<SliderInt>("max-angle-slider");
             _inspector.Q<Button>("optimize-button").clicked += () => _path.OptimizeResolutionByAngle(angleSlider.value);
+
+            var basisSlider = _inspector.Q<Slider>("delta-basis-slider");
+            _inspector.Q<Button>("optimize-by-length-button").clicked += () => _path.OptimizeResolutionByLength(basisSlider.value);
+
+            _inspector.Q<Button>("optimize-all-button").clicked += () => _path.OptimizeResolution(angleSlider.value, basisSlider.value);
 
             _selectedPointIndex = -1;
 
@@ -381,17 +402,6 @@ namespace Paths
             UpdateState();
 
             return _inspector;
-        }
-
-        public bool NearlyEquals(float value, float other, float epsilon = 0.0000001f)
-        {
-            if (value == other) // Simple check, also handles infinities.
-                return true;
-
-            value = Mathf.Abs(value);
-            other = Mathf.Abs(other);
-
-            return Mathf.Abs(value - other) < epsilon;
         }
 
         #region Draw primitives
@@ -518,8 +528,9 @@ namespace Paths
             if (_selectedPointIndex == number)
             {
                 var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.GetPoint(number, false)), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
+                var distance = Vector3.Distance(newPos, _path.GetPoint(number, false));
 
-                if (NearlyEquals(Vector3.Distance(newPos, _path.GetPoint(number, false)), 0f, 0.000001f))
+                if (distance == 0f || distance < 0.000001f)
                     return;
 
                 _path.SetPoint(number, newPos, false);
@@ -649,7 +660,7 @@ namespace Paths
             if (_path.Looped)
             {
                 DrawPoint(0, false, false, true);
-                
+
                 for (int i = 3; i >= 1; i--)
                     DrawAdjacentAddButton(_path.GetPoint(_path.PointsCount - i, 0.5f), _path.PointsCount - i + 1);
 

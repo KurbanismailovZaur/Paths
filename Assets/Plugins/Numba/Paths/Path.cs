@@ -120,8 +120,14 @@ namespace Paths
         public bool Looped
         {
             get => _looped;
-            set => _looped = value;
+            set
+            {
+                _looped = value;
+                RecalculatePathLength();
+            }
         }
+
+        public float Length { get; private set; }
 
         // Used by serialization system.
         private Path() => _segmentCalculators = new SegmentLengthCalculator[]
@@ -162,8 +168,6 @@ namespace Paths
 #endif
         #endregion
 
-        private SegmentLengthCalculator GetCurrentSegmentCalculator() => _segmentCalculators[_segmentCalculatorIndex];
-
         public void OptimizeResolutionByAngle(float maxAngle = 8f)
         {
             bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out Vector3 position, out Vector3 vector, out float angle)
@@ -173,8 +177,6 @@ namespace Paths
 
                 return (angle = Vector3.Angle(lastVector, vector)) > maxAngle;
             }
-
-            var ticks = Environment.TickCount;
 
             if (_points.Count < 3)
             {
@@ -191,13 +193,13 @@ namespace Paths
 
                 Vector3 lastVector;
 
-                GetCurrentSegmentCalculator().CalculateLength(currentSegment);
+                RecalculateSegmentLength(currentSegment);
                 var prevSegment = currentSegment - 1;
 
                 if (_looped)
                 {
                     prevSegment = WrapIndex(prevSegment);
-                    GetCurrentSegmentCalculator().CalculateLength(prevSegment);
+                    RecalculateSegmentLength(prevSegment);
 
                     lastVector = (GetPoint(currentSegment, 0f) - GetPoint(prevSegment, 1f - _step)).normalized;
                 }
@@ -207,7 +209,7 @@ namespace Paths
                         lastVector = (GetPoint(currentSegment, _step) - GetPoint(currentSegment, 0f)).normalized;
                     else
                     {
-                        GetCurrentSegmentCalculator().CalculateLength(prevSegment);
+                        RecalculateSegmentLength(prevSegment);
                         lastVector = (GetPoint(currentSegment, 0f) - GetPoint(prevSegment, 1f - _step)).normalized;
                     }
                 }
@@ -236,7 +238,7 @@ namespace Paths
                     lastVector = vector;
 
                     if (++currentSegment < SegmentsCount)
-                        GetCurrentSegmentCalculator().CalculateLength(currentSegment);
+                        RecalculateSegmentLength(currentSegment);
                 }
 
                 // Reaching this code means, that all segments are fairly smooth.
@@ -246,7 +248,45 @@ namespace Paths
             }
 
             RecalculateAllSegments();
-            Debug.Log($"Ticks: {Environment.TickCount - ticks}");
+        }
+
+        public void OptimizeResolutionByLength(float deltaBasis = 0.01f)
+        {
+            Resolution = 1;
+
+            if (_points.Count < 3)
+                return;
+
+            deltaBasis *= Length * deltaBasis;
+            var prevLength = Length;
+
+            for (int i = 2; i <= 100; i++)
+            {
+                Resolution = i;
+
+                if (Length - prevLength <= deltaBasis)
+                    break;
+
+                prevLength = Length;
+            }
+        }
+
+        public void OptimizeResolution(float maxAngle = 8f, float deltaBasis = 0.01f)
+        {
+            var ticks = Environment.TickCount;
+            OptimizeResolutionByAngle(maxAngle);
+            var angleResolution = Resolution;
+            Debug.Log($"Optimize by angle: {Environment.TickCount - ticks}");
+
+            ticks = Environment.TickCount;
+            OptimizeResolutionByLength(deltaBasis);
+            var lengthResolution = Resolution;
+            Debug.Log($"Optimize by length: {Environment.TickCount - ticks}");
+
+            if (lengthResolution > angleResolution)
+                (lengthResolution, angleResolution) = (angleResolution, lengthResolution);
+
+            Resolution = (int)Mathf.Lerp(lengthResolution, angleResolution, 0.25f);
         }
 
         #region Transforms
@@ -264,10 +304,25 @@ namespace Paths
 
         private void SetNewSegmentsCalculator() => _segmentCalculatorIndex = _segments.Count < 3 ? _segments.Count : 3;
 
+        private SegmentLengthCalculator GetCurrentSegmentCalculator() => _segmentCalculators[_segmentCalculatorIndex];
+
         private void RecalculateAllSegments()
         {
             for (int i = 0; i < _segments.Count; i++)
-                GetCurrentSegmentCalculator().CalculateLength(i);
+                RecalculateSegmentLength(i);
+
+            RecalculatePathLength();
+        }
+
+        private void RecalculateSegmentLength(int segment) => GetCurrentSegmentCalculator().CalculateLength(segment);
+
+        private void RecalculatePathLength()
+        {
+            var segmentShift = (_points.Count > 3 && !_looped) ? 1 : 0;
+
+            Length = 0f;
+            for (int i = 0; i < SegmentsCount; i++)
+                Length += _segments[i + segmentShift];
         }
 
         public float GetSegmentLength(int segment)
@@ -298,7 +353,9 @@ namespace Paths
             else
             {
                 for (int i = _points.Count - 3; i <= _points.Count; i++)
-                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+                    RecalculateSegmentLength(WrapIndex(i));
+
+                RecalculatePathLength();
             }
         }
 
@@ -316,7 +373,9 @@ namespace Paths
             else
             {
                 for (int i = index - 2; i <= index + 1; i++)
-                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+                    RecalculateSegmentLength(WrapIndex(i));
+
+                RecalculatePathLength();
             }
         }
 
@@ -352,14 +411,19 @@ namespace Paths
             SetNewSegmentsCalculator();
 
             if (_segments.Count == 0)
+            {
+                Length = 0f;
                 return;
+            }
 
             if (_segments.Count < 5)
                 RecalculateAllSegments();
             else
             {
                 for (int i = index - 2; i <= index; i++)
-                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+                    RecalculateSegmentLength(WrapIndex(i));
+
+                RecalculatePathLength();
             }
         }
 
@@ -367,6 +431,8 @@ namespace Paths
         {
             _points.Clear();
             _segments.Clear();
+
+            Length = 0f;
         }
 
         public Vector3 GetPoint(int index, bool useGlobal = true) => CheckAndTransformPointToGlobal(index, useGlobal);
@@ -381,7 +447,9 @@ namespace Paths
             else
             {
                 for (int i = index - 2; i <= index + 1; i++)
-                    GetCurrentSegmentCalculator().CalculateLength(WrapIndex(i));
+                    RecalculateSegmentLength(WrapIndex(i));
+
+                RecalculatePathLength();
             }
         }
 
@@ -454,7 +522,29 @@ namespace Paths
 
         public Vector3 GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
-            return Vector3.zero;
+            if (useNormalizedDistance)
+                distance *= Length;
+
+            distance = Mathf.Clamp(distance, 0f, Length);
+
+            var segment = 0;
+            for (; segment < SegmentsCount; segment++)
+            {
+                var segmentLength = GetSegmentLength(segment);
+
+                if (distance <= segmentLength)
+                    break;
+
+                distance -= segmentLength;
+            }
+
+            if (segment == SegmentsCount)
+            {
+                segment -= 1;
+                distance = GetSegmentLength(SegmentsCount - 1);
+            }
+
+            return GetPoint(segment, distance, false, useGlobal);
         }
     }
 }

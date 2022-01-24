@@ -18,11 +18,14 @@ public class Test : MonoBehaviour
     [SerializeField]
     private bool _useNormalizedDistance = true;
 
+    [SerializeField]
+    private bool _useGlobal = true;
+
     private void Awake() => _path = GetComponent<Paths.Path>();
 
     //private void OnDrawGizmosSelected()
     //{
-    //    var position = _path.GetPoint(_segment, _distance, true, true);
+    //    var position = _path.GetPoint(_distance, _useNormalizedDistance, _useGlobal);
     //    Gizmos.DrawSphere(position, 0.1f);
     //}
 
@@ -30,9 +33,8 @@ public class Test : MonoBehaviour
     {
         while (true)
         {
-            _path.OptimizeResolutionByAngle(1f);
-
-            yield return new WaitForSeconds(1f);
+            _path.OptimizeResolutionByLength();
+            yield return new WaitForSeconds(0.1f);
         }
     }
 }
