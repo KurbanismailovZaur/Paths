@@ -250,43 +250,54 @@ namespace Paths
             RecalculateAllSegments();
         }
 
-        public void OptimizeResolutionByLength(float deltaBasis = 0.01f)
+        public void Optimize()
         {
-            Resolution = 1;
+            static float Remap(float value, float from1, float to1, float from2, float to2)
+            {
+                return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
+            }
 
             if (_points.Count < 3)
-                return;
-
-            deltaBasis *= Length * deltaBasis;
-            var prevLength = Length;
-
-            for (int i = 2; i <= 100; i++)
             {
-                Resolution = i;
-
-                if (Length - prevLength <= deltaBasis)
-                    break;
-
-                prevLength = Length;
+                Resolution = 1;
+                return;
             }
-        }
 
-        public void OptimizeResolution(float maxAngle = 8f, float deltaBasis = 0.01f)
-        {
-            var ticks = Environment.TickCount;
-            OptimizeResolutionByAngle(maxAngle);
-            var angleResolution = Resolution;
-            Debug.Log($"Optimize by angle: {Environment.TickCount - ticks}");
+            int startIndex, endIndex;
+            if (_looped)
+            {
+                startIndex = 0;
+                endIndex = _points.Count;
+            }
+            else
+            {
+                startIndex = 1;
+                endIndex = _points.Count == 3 ? 3 : _points.Count - 1;
+            }
+            
+            var resolution = 1f;
 
-            ticks = Environment.TickCount;
-            OptimizeResolutionByLength(deltaBasis);
-            var lengthResolution = Resolution;
-            Debug.Log($"Optimize by length: {Environment.TickCount - ticks}");
+            for (int i = startIndex; i < endIndex; i++)
+            {
+                var back = _points[WrapIndex(i - 1)] - _points[i];
+                var forward = _points[WrapIndex(i + 1)] - _points[i];
 
-            if (lengthResolution > angleResolution)
-                (lengthResolution, angleResolution) = (angleResolution, lengthResolution);
+                var dot = Vector3.Dot(back.normalized, forward.normalized);
+                dot = Math.Max(dot, Vector3.Dot(-back.normalized, forward.normalized));
 
-            Resolution = (int)Mathf.Lerp(lengthResolution, angleResolution, 0.25f);
+                var newResolution = Remap(dot, -1f, 1f, 1f, 15f);
+
+                var aspect = back.magnitude / forward.magnitude;
+                if (aspect < 1f)
+                    aspect = 1f / aspect;
+
+                newResolution += newResolution * (aspect - 1f) * 0.1f;
+
+                if (newResolution > resolution)
+                    resolution = newResolution;
+            }
+
+            Resolution = Mathf.Max((int)resolution, 4);
         }
 
         #region Transforms

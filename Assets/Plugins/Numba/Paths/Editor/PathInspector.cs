@@ -309,12 +309,9 @@ namespace Paths
             _loopedToggle.RegisterValueChangedCallback(e => _path.Looped = e.newValue);
 
             var angleSlider = _inspector.Q<SliderInt>("max-angle-slider");
-            _inspector.Q<Button>("optimize-button").clicked += () => _path.OptimizeResolutionByAngle(angleSlider.value);
+            _inspector.Q<Button>("optimize-by-angle-button").clicked += () => _path.OptimizeResolutionByAngle(angleSlider.value);
 
-            var basisSlider = _inspector.Q<Slider>("delta-basis-slider");
-            _inspector.Q<Button>("optimize-by-length-button").clicked += () => _path.OptimizeResolutionByLength(basisSlider.value);
-
-            _inspector.Q<Button>("optimize-all-button").clicked += () => _path.OptimizeResolution(angleSlider.value, basisSlider.value);
+            _inspector.Q<Button>("optimize-button").clicked += () => _path.Optimize();
 
             _selectedPointIndex = -1;
 
