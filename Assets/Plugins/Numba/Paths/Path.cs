@@ -31,14 +31,14 @@ namespace Paths
         {
             public OneSegmentsCalculator(Path path) : base(path) { }
 
-            public override void CalculateLength(int segment) => _path._segments[segment] = 0f;
+            public override void CalculateLength(int segment) => _path._segmentsLengths[segment] = 0f;
         }
 
         private class TwoSegmentsCalculator : SegmentLengthCalculator
         {
             public TwoSegmentsCalculator(Path path) : base(path) { }
 
-            public override void CalculateLength(int segment) => _path._segments[segment] = Vector3.Distance(_path._points[0], _path._points[1]);
+            public override void CalculateLength(int segment) => _path._segmentsLengths[segment] = Vector3.Distance(_path._points[0], _path._points[1]);
         }
 
         private class ManySegmentsCalculator : SegmentLengthCalculator
@@ -66,7 +66,7 @@ namespace Paths
                     t += _path._step;
                 }
 
-                _path._segments[segment] = length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
+                _path._segmentsLengths[segment] = length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
             }
         }
         #endregion
@@ -77,7 +77,7 @@ namespace Paths
         public int PointsCount => _points.Count;
 
         [SerializeField]
-        private List<float> _segments = new();
+        private List<float> _segmentsLengths = new();
 
         public int SegmentsCount
         {
@@ -86,7 +86,7 @@ namespace Paths
                 if (_points.Count < 2)
                     return 0;
 
-                return _looped ? _points.Count : _points.Count - (_points.Count < 4 ? 1 : 3);
+                return _looped ? _points.Count : _points.Count < 4 ? 1 : _points.Count - 3;
             }
         }
 
@@ -302,13 +302,13 @@ namespace Paths
         }
         #endregion
 
-        private void SetNewSegmentsCalculator() => _segmentCalculatorIndex = _segments.Count < 3 ? _segments.Count : 3;
+        private void SetNewSegmentsCalculator() => _segmentCalculatorIndex = Mathf.Min(_segmentsLengths.Count, 3);
 
         private SegmentLengthCalculator GetCurrentSegmentCalculator() => _segmentCalculators[_segmentCalculatorIndex];
 
         private void RecalculateAllSegments()
         {
-            for (int i = 0; i < _segments.Count; i++)
+            for (int i = 0; i < _segmentsLengths.Count; i++)
                 RecalculateSegmentLength(i);
 
             RecalculatePathLength();
@@ -318,11 +318,11 @@ namespace Paths
 
         private void RecalculatePathLength()
         {
-            var segmentShift = (_points.Count > 3 && !_looped) ? 1 : 0;
+            var segmentShift = (_points.Count > 2 && !_looped) ? 1 : 0;
 
             Length = 0f;
             for (int i = 0; i < SegmentsCount; i++)
-                Length += _segments[i + segmentShift];
+                Length += _segmentsLengths[i + segmentShift];
         }
 
         public float GetSegmentLength(int segment)
@@ -330,13 +330,21 @@ namespace Paths
             if (_points.Count < 2)
                 throw new Exception($"Segment {segment} not exist.");
 
-            if (!_looped && segment > _points.Count - (_points.Count < 4 ? 2 : 4) || _looped && segment > _points.Count - 1)
+            if (!_looped)
+            {
+                if (_points.Count < 4 && segment > 0)
+                    throw new Exception($"Segment {segment} not exist.");
+
+                if (_points.Count > 3 && segment > _points.Count - 4)
+                    throw new Exception($"Segment {segment} not exist.");
+
+                if (_points.Count > 2)
+                    segment += 1;
+            }
+            else if (segment > _points.Count - 1)
                 throw new Exception($"Segment {segment} not exist.");
 
-            if (_points.Count > 3 && !_looped)
-                segment += 1;
-
-            return _segments[segment];
+            return _segmentsLengths[segment];
         }
 
         public void AddPoint(Vector3 point, bool useGlobal = true)
@@ -344,11 +352,11 @@ namespace Paths
             CheckAndTransformPointToLocal(ref point, useGlobal);
 
             _points.Add(point);
-            _segments.Add(0f);
+            _segmentsLengths.Add(0f);
 
             SetNewSegmentsCalculator();
 
-            if (_segments.Count < 5)
+            if (_segmentsLengths.Count < 5)
                 RecalculateAllSegments();
             else
             {
@@ -364,11 +372,11 @@ namespace Paths
             CheckAndTransformPointToLocal(ref point, useGlobal);
 
             _points.Insert(index, point);
-            _segments.Insert(index, 0f);
+            _segmentsLengths.Insert(index, 0f);
 
             SetNewSegmentsCalculator();
 
-            if (_segments.Count < 5)
+            if (_segmentsLengths.Count < 5)
                 RecalculateAllSegments();
             else
             {
@@ -406,17 +414,17 @@ namespace Paths
         public void RemovePointAt(int index)
         {
             _points.RemoveAt(index);
-            _segments.RemoveAt(index);
+            _segmentsLengths.RemoveAt(index);
 
             SetNewSegmentsCalculator();
 
-            if (_segments.Count == 0)
+            if (_segmentsLengths.Count == 0)
             {
                 Length = 0f;
                 return;
             }
 
-            if (_segments.Count < 5)
+            if (_segmentsLengths.Count < 5)
                 RecalculateAllSegments();
             else
             {
@@ -430,7 +438,7 @@ namespace Paths
         public void ClearPoints()
         {
             _points.Clear();
-            _segments.Clear();
+            _segmentsLengths.Clear();
 
             Length = 0f;
         }
@@ -442,7 +450,7 @@ namespace Paths
             CheckAndTransformPointToLocal(ref position, useGlobal);
             _points[index] = position;
 
-            if (_segments.Count < 5)
+            if (_segmentsLengths.Count < 5)
                 RecalculateAllSegments();
             else
             {
@@ -474,7 +482,7 @@ namespace Paths
                 return useGlobal ? transform.TransformPoint(point) : point;
             }
 
-            if (_points.Count > 3 && !_looped)
+            if (_points.Count > 2 && !_looped)
                 segment += 1;
 
             // For 3 and more points..

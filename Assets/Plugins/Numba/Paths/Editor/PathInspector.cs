@@ -613,24 +613,39 @@ namespace Paths
 
         private void DrawThreePoints()
         {
-            DrawCatmullRomLine(_path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), Color.yellow);
             DrawCatmullRomLine(_path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), _path.GetPoint(0), Color.yellow);
 
             if (!_path.Looped)
+            {
+                DrawCatmullRomLine(_path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), Color.white, true);
                 DrawCatmullRomLine(_path.GetPoint(1), _path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), Color.white, true);
+            }
             else
+            {
+                DrawCatmullRomLine(_path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), Color.yellow);
                 DrawCatmullRomLine(_path.GetPoint(1), _path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), Color.yellow);
+            }
 
             DrawRoot();
-            DrawPoint(0, !_path.Looped, false, true);
-            DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 1);
-            DrawPoint(1, false, false, true);
-            DrawAdjacentAddButton(_path.GetPoint(1, 0.5f), 2);
-            DrawLastAddButton();
-            DrawPoint(2, !_path.Looped, false, true);
 
-            if (_path.Looped)
+            if (!_path.Looped)
+            {
+                DrawPoint(0, true, false, true);
+                DrawPoint(1, false, false, true);
+                DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 2);
+                DrawLastAddButton();
+                DrawPoint(2, false, false, true);
+            }
+            else
+            {
+                DrawPoint(0, false, false, true);
+                DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 1);
+                DrawPoint(1, false, false, true);
+                DrawAdjacentAddButton(_path.GetPoint(1, 0.5f), 2);
+                DrawLastAddButton();
+                DrawPoint(2, false, false, true);
                 DrawAdjacentAddButton(_path.GetPoint(2, 0.5f), 3);
+            }
         }
 
         private void DrawManyPoints()

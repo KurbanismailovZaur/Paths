@@ -26,11 +26,11 @@ public class Test : MonoBehaviour
 
     //private void Awake() => _path = GetComponent<Paths.Path>();
 
-    //private void OnDrawGizmosSelected()
-    //{
-    //    var position = _path.GetPoint(_distance, _useNormalizedDistance, _useGlobal);
-    //    Gizmos.DrawSphere(position, 0.1f);
-    //}
+    private void OnDrawGizmosSelected()
+    {
+        var position = _path.GetPoint(_distance, _useNormalizedDistance, _useGlobal);
+        Gizmos.DrawSphere(position, 0.1f);
+    }
 
     private void Update()
     {
