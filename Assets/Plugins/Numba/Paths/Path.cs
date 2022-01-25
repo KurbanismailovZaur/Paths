@@ -252,11 +252,6 @@ namespace Paths
 
         public void Optimize()
         {
-            static float Remap(float value, float from1, float to1, float from2, float to2)
-            {
-                return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
-            }
-
             if (_points.Count < 3)
             {
                 Resolution = 1;
@@ -285,11 +280,13 @@ namespace Paths
                 var dot = Vector3.Dot(back.normalized, forward.normalized);
                 dot = Math.Max(dot, Vector3.Dot(-back.normalized, forward.normalized));
 
-                var newResolution = Remap(dot, -1f, 1f, 1f, 15f);
+                var newResolution = (dot + 1f) / (2f) * (15f) + 1f;
 
                 var aspect = back.magnitude / forward.magnitude;
                 if (aspect < 1f)
                     aspect = 1f / aspect;
+
+                aspect = Mathf.Max(aspect / 2.5f, 1f);
 
                 newResolution += newResolution * (aspect - 1f) * 0.1f;
 
