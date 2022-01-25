@@ -250,6 +250,10 @@ namespace Paths
             var sceneViewPos = SceneView.lastActiveSceneView.camera.WorldToScreenPoint(isLocal ? TransformPoint(point) : point);
             sceneViewPos.y = SceneView.lastActiveSceneView.camera.pixelHeight - sceneViewPos.y;
 
+#if UNITY_EDITOR_OSX
+            sceneViewPos.x /= 2f;
+            sceneViewPos.y /= 2f;
+#endif  
             return sceneViewPos;
         }
 
@@ -260,9 +264,9 @@ namespace Paths
             var screenPos = GetPointPositionInSceneView(point, isLocal);
             return new Rect(screenPos.x - size.x / 2f, screenPos.y - size.y / 2f, size.x, size.y);
         }
-        #endregion
+#endregion
 
-        #region Updates
+#region Updates
         private void UpdatePointsAddGroup()
         {
             if (_path.PointsCount == 0)
@@ -291,7 +295,7 @@ namespace Paths
             SceneView.lastActiveSceneView.Repaint();
             UpdateHelp();
         }
-        #endregion
+#endregion
 
         public override VisualElement CreateInspectorGUI()
         {
@@ -338,12 +342,12 @@ namespace Paths
                 if (index < 0)
                     return;
 
-                #region Point name
+#region Point name
                 var labelField = element.Q<Label>("point-number");
                 labelField.text = index.ToString();
-                #endregion
+#endregion
 
-                #region Point position
+#region Point position
                 var posField = element.Q<Vector3Field>("point-position");
                 posField.value = _path.GetPoint(index, false);
 
@@ -354,9 +358,9 @@ namespace Paths
                 });
 
                 posField.RegisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
-                #endregion
+#endregion
 
-                #region Add and remove point
+#region Add and remove point
                 var addButton = element.Q<Button>("add-point-button");
                 _addButtonCallbacks.Add(element, () => AddElement(index));
                 addButton.clicked += _addButtonCallbacks[element];
@@ -364,7 +368,7 @@ namespace Paths
                 var removeButton = element.Q<Button>("remove-point-button");
                 _removeButtonCallbacks.Add(element, () => RemoveElement(index));
                 removeButton.clicked += _removeButtonCallbacks[element];
-                #endregion
+#endregion
             }
 
             void Unbind(VisualElement element, int index)
@@ -404,7 +408,7 @@ namespace Paths
             return _inspector;
         }
 
-        #region Draw primitives
+#region Draw primitives
         private void DrawLine(Vector3 from, Vector3 to, Color color, bool useDotted = false)
         {
             Handles.color = color;
@@ -588,9 +592,9 @@ namespace Paths
 
             SceneView.lastActiveSceneView.Repaint();
         }
-        #endregion
+#endregion
 
-        #region Draw points
+#region Draw points
         private void DrawOnePoint()
         {
             DrawRoot();
@@ -674,7 +678,7 @@ namespace Paths
 
             DrawLastAddButton();
         }
-        #endregion
+#endregion
 
         private void OnSceneGUI()
         {

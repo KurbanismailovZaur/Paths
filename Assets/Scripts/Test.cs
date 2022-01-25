@@ -21,7 +21,10 @@ public class Test : MonoBehaviour
     [SerializeField]
     private bool _useGlobal = true;
 
-    private void Awake() => _path = GetComponent<Paths.Path>();
+    [SerializeField]
+    private Transform[] _points;
+
+    //private void Awake() => _path = GetComponent<Paths.Path>();
 
     //private void OnDrawGizmosSelected()
     //{
@@ -29,12 +32,20 @@ public class Test : MonoBehaviour
     //    Gizmos.DrawSphere(position, 0.1f);
     //}
 
-    private IEnumerator Start()
+    private void Update()
     {
-        while (true)
-        {
-            _path.OptimizeResolutionByLength();
-            yield return new WaitForSeconds(0.1f);
-        }
+        var vectorA = _points[0].position - _points[1].position;
+        var vectorB = _points[2].position - _points[1].position;
+
+        print(Vector3.Angle(vectorA, vectorB));
     }
+
+    //private IEnumerator Start()
+    //{
+    //    while (true)
+    //    {
+    //        _path.OptimizeResolutionByLength();
+    //        yield return new WaitForSeconds(0.1f);
+    //    }
+    //}
 }
