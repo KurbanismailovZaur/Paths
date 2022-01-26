@@ -7,43 +7,14 @@ using UnityEngine;
 public class Test : MonoBehaviour
 {
     [SerializeField]
-    private Paths.Path _path;
+    private Path _path;
 
-    //[SerializeField]
-    //private int _segment;
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float _distance;
 
-    //[SerializeField]
-    //[Range(-1f, 10f)]
-    //private float _distance;
-
-    //[SerializeField]
-    //private bool _useNormalizedDistance = true;
-
-    //[SerializeField]
-    //private bool _useGlobal = true;
-
-    //[SerializeField]
-    //private Transform[] _points;
-
-    //private void Awake() => _path = GetComponent<Paths.Path>();
-
-    //private void OnDrawGizmosSelected()
-    //{
-    //    var position = _path.GetPoint(_distance, _useNormalizedDistance, _useGlobal);
-    //    Gizmos.DrawSphere(position, 0.1f);
-    //}
-
-    //private void Update()
-    //{
-    //    var vectorA = _points[0].position - _points[1].position;
-    //    var vectorB = _points[2].position - _points[1].position;
-
-    //    print(Vector3.Dot(vectorA, vectorB));
-    //}
-
-    private void Start()
+    private void Update()
     {
-        var path = Path.Create(Vector3.one, false, Vector3.right, Vector3.one, Vector3.down);
-        path.Optimize();
+        transform.position = _path.GetPoint(_distance);
     }
 }

@@ -6,15 +6,11 @@
     <ui:GroupBox style="flex-direction: column; padding-top: 4px; padding-bottom: 4px; padding-left: 8px; padding-right: 12px; margin-left: 0; margin-right: 0; margin-bottom: 6px; background-color: rgba(0, 150, 255, 0.06); border-top-left-radius: 6px; border-bottom-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-left-color: rgba(0, 153, 255, 0.25); border-right-color: rgba(0, 153, 255, 0.25); border-top-color: rgba(0, 153, 255, 0.25); border-bottom-color: rgba(0, 153, 255, 0.25); border-left-width: 1px; border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px;">
         <ui:Label text="Optimization" display-tooltip-when-elided="true" style="color: rgb(58, 136, 188);" />
         <ui:GroupBox style="flex-direction: row-reverse;">
-            <ui:Button text="Optimize" display-tooltip-when-elided="true" name="optimize-button" style="flex-direction: column; position: relative; flex-wrap: nowrap; width: 20%; margin-right: 0; margin-left: 3px;" />
+            <ui:Button text="Optimize" display-tooltip-when-elided="true" name="optimize-by-angle-button" style="flex-direction: column; position: relative; flex-wrap: nowrap; width: 20%; margin-right: 0; margin-left: 3px;" />
             <ui:SliderInt picking-mode="Ignore" label="Max Angle" value="8" high-value="180" show-input-field="true" name="max-angle-slider" low-value="1" style="width: 80%; padding-right: 10px;" />
         </ui:GroupBox>
         <ui:GroupBox style="flex-direction: row-reverse; margin-top: 0; padding-top: 0;">
-            <ui:Button text="Optimize" display-tooltip-when-elided="true" name="optimize-by-length-button" style="flex-direction: column; position: relative; flex-wrap: nowrap; width: 20%; margin-right: 0; margin-left: 3px;" />
-            <ui:Slider picking-mode="Ignore" label="Delta Basis" value="0.01" high-value="100" name="delta-basis-slider" show-input-field="true" style="width: 80%; padding-right: 10px; display: flex;" />
-        </ui:GroupBox>
-        <ui:GroupBox style="flex-direction: row-reverse; margin-top: 0; padding-top: 0;">
-            <ui:Button text="Optimize all" display-tooltip-when-elided="true" name="optimize-all-button" style="flex-direction: column; position: relative; flex-wrap: nowrap; width: 20%; margin-right: 0; margin-left: 3px; display: flex;" />
+            <ui:Button text="Optimize" display-tooltip-when-elided="true" name="optimize-button" style="flex-direction: column; position: relative; flex-wrap: nowrap; width: 20%; margin-right: 0; margin-left: 3px; display: flex;" />
             <ui:Slider picking-mode="Ignore" label="Delta Basis" value="0.1" high-value="100" show-input-field="true" style="width: 80%; padding-right: 10px; display: none;" />
         </ui:GroupBox>
     </ui:GroupBox>
