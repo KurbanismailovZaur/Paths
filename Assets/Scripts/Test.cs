@@ -1,3 +1,4 @@
+using Paths;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,7 @@ public class Test : MonoBehaviour
     //[SerializeField]
     //private Transform[] _points;
 
-    private void Awake() => _path = GetComponent<Paths.Path>();
+    //private void Awake() => _path = GetComponent<Paths.Path>();
 
     //private void OnDrawGizmosSelected()
     //{
@@ -40,12 +41,9 @@ public class Test : MonoBehaviour
     //    print(Vector3.Dot(vectorA, vectorB));
     //}
 
-    private IEnumerator Start()
+    private void Start()
     {
-        while (true)
-        {
-            _path.Optimize();
-            yield return new WaitForSeconds(0.05f);
-        }
+        var path = Path.Create(Vector3.one, false, Vector3.right, Vector3.one, Vector3.down);
+        path.Optimize();
     }
 }

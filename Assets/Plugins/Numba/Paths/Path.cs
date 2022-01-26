@@ -138,14 +138,24 @@ namespace Paths
             new ManySegmentsCalculator(this)
         };
 
-        public static Path Create() => new GameObject("Path").AddComponent<Path>();
+        public static Path Create() => Create(Vector3.zero);
 
-        public static Path Create(IEnumerable<Vector3> points)
+        public static Path Create(Vector3 pivotPosition)
         {
-            var path = Create();
+            var path = new GameObject("Path").AddComponent<Path>();
+            path.transform.position = pivotPosition;
+
+            return path;
+        }
+
+        public static Path Create(Vector3 pivotPosition, bool useGlobals, params Vector3[] points) => Create(pivotPosition, useGlobals, (IEnumerable<Vector3>)points);
+
+        public static Path Create(Vector3 pivotPosition, bool useGlobal, IEnumerable<Vector3> points)
+        {
+            var path = Create(pivotPosition);
 
             foreach (var point in points)
-                path.AddPoint(point);
+                path.AddPoint(point, useGlobal);
 
             return path;
         }
@@ -168,7 +178,7 @@ namespace Paths
 #endif
         #endregion
 
-        public void OptimizeResolutionByAngle(float maxAngle = 8f)
+        public void OptimizeByAngle(float maxAngle = 8f)
         {
             bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out Vector3 position, out Vector3 vector, out float angle)
             {
