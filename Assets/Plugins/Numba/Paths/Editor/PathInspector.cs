@@ -54,16 +54,40 @@ namespace Paths
                 foreach (var groupBox in _listView.Query<GroupBox>("point-element").Build())
                 {
                     var posField = groupBox.Q<Vector3Field>("point-position");
+                    var rotField = groupBox.Q<Vector3Field>("point-rotation");
 
                     if (!int.TryParse(groupBox.Q<Label>("point-number").text, out int number))
                         return;
 
-                    posField.value = _inspector._path.GetPoint(number, false);
+                    var point = _inspector.GetPathPoint(number, false);
+
+                    posField.value = point.Position;
+                    rotField.value = point.Rotation.eulerAngles;
                 }
 
                 if (_inspector._selectedPointIndex != -1)
-                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").value = _inspector._path.GetPoint(_inspector._selectedPointIndex, false);
+                {
+                    var point = _inspector.GetPathPoint(_inspector._selectedPointIndex, false);
+                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").value = point.Position;
+                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-rotation").value = point.Rotation.eulerAngles;
+                }
             }
+        }
+
+        private Point GetPathPoint(int index, bool useGlobal = true)
+        {
+            var method = _path.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                .Single(m => m.Name == "GetRawPoint" && m.GetParameters().Length == 2);
+
+            return (Point)method.Invoke(_path, new object[] { index, useGlobal });
+        }
+
+        private Point GetPathPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        {
+            var method = _path.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
+                .Single(m => m.Name == "GetRawPoint" && m.GetParameters().Length == 4);
+
+            return (Point)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
         }
 
         #region UXML
@@ -77,6 +101,7 @@ namespace Paths
         private VisualTreeAsset _pathPointsListElementUXML;
         #endregion
 
+        #region Fields
         private VisualElement _inspector;
 
         private Path _path;
@@ -108,9 +133,12 @@ namespace Paths
         private List<int> _pointsToRemove = new();
 
         private List<Action> _pointsToAdd = new();
+        #endregion
 
         #region Callbacks
         private Dictionary<VisualElement, EventCallback<ChangeEvent<Vector3>>> _positionFieldValueChangedCallbacks = new();
+
+        private Dictionary<VisualElement, EventCallback<ChangeEvent<Vector3>>> _rotationFieldValueChangedCallbacks = new();
 
         private Dictionary<VisualElement, Action> _addButtonCallbacks = new();
 
@@ -147,9 +175,9 @@ namespace Paths
         }
 
         #region Add and remove
-        private void AddElement(int index, Vector3 position)
+        private void InsertElement(int index, Point point)
         {
-            _path.InsertPoint(index, position, false);
+            _path.InsertPoint(index, point, false);
 
             _listView.Rebuild();
 
@@ -159,21 +187,21 @@ namespace Paths
             UpdateState();
         }
 
-        private void AddElement(int index)
+        private void InsertElement(int index)
         {
-            Vector3 newPoint;
+            Point newPoint;
 
             if (_path.PointsCount == 1)
-                newPoint = _path.GetPoint(0, false);
+                newPoint = GetPathPoint(0, false);
+            else if (index < _path.PointsCount - 1)
+                newPoint = GetPathPoint(index, 0.5f, true, false);
             else
             {
-                if (index < _path.PointsCount - 1)
-                    newPoint = Vector3.Lerp(_path.GetPoint(index, false), _path.GetPoint(index + 1, false), 0.5f);
-                else
-                    newPoint = _path.GetPoint(index) + (_path.GetPoint(index) - _path.GetPoint(index - 1));
+                var lastPoint = GetPathPoint(index, false);
+                newPoint = new Point(lastPoint.Position + (lastPoint.Position - GetPathPoint(index - 1, false).Position), lastPoint.Rotation);
             }
 
-            AddElement(index + 1, newPoint);
+            InsertElement(index + 1, newPoint);
         }
 
         private void RemoveElement(int index)
@@ -204,11 +232,28 @@ namespace Paths
             var label = _toolsBox.Q<Label>("point-number");
             label.text = $"Point number: {_selectedPointIndex}";
 
-            var position = _toolsBox.Q<Vector3Field>("point-position");
-            position.value = _path.GetPoint(_selectedPointIndex, false);
+            var point = GetPathPoint(_selectedPointIndex, false);
+
+            var positionField = _toolsBox.Q<Vector3Field>("point-position");
+            positionField.value = point.Position;
+
+            var rotationField = _toolsBox.Q<Vector3Field>("point-rotation");
+            rotationField.value = point.Rotation.eulerAngles;
 
             if (needCreateToolsBox)
-                position.RegisterValueChangedCallback(e => _path.SetPoint(_selectedPointIndex, e.newValue, false));
+            {
+                positionField.RegisterValueChangedCallback(e =>
+                {
+                    point.Position = e.newValue;
+                    _path.SetPoint(_selectedPointIndex, point, false);
+                });
+
+                rotationField.RegisterValueChangedCallback(e =>
+                {
+                    point.Rotation = Quaternion.Euler(e.newValue);
+                    _path.SetPoint(_selectedPointIndex, point, false);
+                });
+            }
         }
 
         private void SelectPointInListView(int index)
@@ -224,12 +269,12 @@ namespace Paths
             Bounds bounds;
             if (_isFramed)
             {
-                bounds = new Bounds(TransformPoint(_path.GetPoint(_selectedPointIndex, false)), Vector3.zero);
-                bounds.Encapsulate(_selectedPointIndex != 0 ? TransformPoint(_path.GetPoint(_selectedPointIndex - 1, false)) : TransformPoint(_path.GetPoint(_path.PointsCount - 1, false)));
-                bounds.Encapsulate(_selectedPointIndex != _path.PointsCount - 1 ? _path.GetPoint(_selectedPointIndex + 1) : _path.GetPoint(0));
+                bounds = new Bounds(TransformPoint(GetPathPoint(_selectedPointIndex, false).Position), Vector3.zero);
+                bounds.Encapsulate(_selectedPointIndex != 0 ? TransformPoint(GetPathPoint(_selectedPointIndex - 1, false).Position) : TransformPoint(GetPathPoint(_path.PointsCount - 1, false).Position));
+                bounds.Encapsulate(_selectedPointIndex != _path.PointsCount - 1 ? GetPathPoint(_selectedPointIndex + 1).Position : GetPathPoint(0).Position);
             }
             else
-                bounds = new Bounds(_path.GetPoint(_selectedPointIndex), Vector3.one);
+                bounds = new Bounds(GetPathPoint(_selectedPointIndex).Position, Vector3.one);
 
             SceneView.lastActiveSceneView.Frame(bounds, false);
             _isFramed = !_isFramed;
@@ -245,6 +290,8 @@ namespace Paths
         #region Transforming
         private Vector3 TransformPoint(Vector3 point) => _path.transform.TransformPoint(point);
 
+        private Quaternion TransformRotation(Quaternion rotation) => _path.transform.rotation * rotation;
+
         private Vector3 GetPointPositionInSceneView(Vector3 point, bool isLocal = false)
         {
             var sceneViewPos = SceneView.lastActiveSceneView.camera.WorldToScreenPoint(isLocal ? TransformPoint(point) : point);
@@ -253,7 +300,7 @@ namespace Paths
 #if UNITY_EDITOR_OSX
             sceneViewPos.x /= 2f;
             sceneViewPos.y /= 2f;
-#endif  
+#endif
             return sceneViewPos;
         }
 
@@ -264,9 +311,9 @@ namespace Paths
             var screenPos = GetPointPositionInSceneView(point, isLocal);
             return new Rect(screenPos.x - size.x / 2f, screenPos.y - size.y / 2f, size.x, size.y);
         }
-#endregion
+        #endregion
 
-#region Updates
+        #region Updates
         private void UpdatePointsAddGroup()
         {
             if (_path.PointsCount == 0)
@@ -295,7 +342,7 @@ namespace Paths
             SceneView.lastActiveSceneView.Repaint();
             UpdateHelp();
         }
-#endregion
+        #endregion
 
         public override VisualElement CreateInspectorGUI()
         {
@@ -308,22 +355,19 @@ namespace Paths
             _resolutionSlider.RegisterValueChangedCallback(e => _path.Resolution = e.newValue);
             _loopedToggle.RegisterValueChangedCallback(e => _path.Looped = e.newValue);
 
-            var angleSlider = _inspector.Q<SliderInt>("max-angle-slider");
-            _inspector.Q<Button>("optimize-by-angle-button").clicked += () => _path.OptimizeByAngle(angleSlider.value);
-
             _inspector.Q<Button>("optimize-button").clicked += () => _path.Optimize();
 
             _selectedPointIndex = -1;
 
             _pointsAddGroupBox.Q<Button>().clicked += () =>
             {
-                AddElement(0, Vector3.zero);
+                InsertElement(0, new Point(Vector3.zero, Quaternion.identity));
                 _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
             };
 
             _listView.binding = new PointsBinding(this, _listView);
 
-            _listView.itemsSource = (List<Vector3>)_path.GetType().GetField("_points", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(_path);
+            _listView.itemsSource = (List<Point>)_path.GetType().GetField("_points", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(_path);
             _listView.makeItem = () =>
             {
                 _pathPointsListElementUXML.CloneTree(_inspector);
@@ -339,33 +383,54 @@ namespace Paths
                 if (index < 0)
                     return;
 
-#region Point name
+                #region Point name
                 var labelField = element.Q<Label>("point-number");
                 labelField.text = index.ToString();
-#endregion
+                #endregion
 
-#region Point position
+                var point = GetPathPoint(index, false);
+
+                #region Point position
                 var posField = element.Q<Vector3Field>("point-position");
-                posField.value = _path.GetPoint(index, false);
+                posField.value = point.Position;
 
                 _positionFieldValueChangedCallbacks.Add(element, e =>
                 {
-                    _path.SetPoint(index, e.newValue, false);
+                    var point = GetPathPoint(index, false);
+                    point.Position = e.newValue;
+
+                    _path.SetPoint(index, point, false);
                     SceneView.lastActiveSceneView.Repaint();
                 });
 
                 posField.RegisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
-#endregion
+                #endregion
 
-#region Add and remove point
+                #region Point rotation
+                var rotField = element.Q<Vector3Field>("point-rotation");
+                rotField.value = point.Rotation.eulerAngles;
+
+                _rotationFieldValueChangedCallbacks.Add(element, e =>
+                {
+                    var point = GetPathPoint(index, false);
+                    point.Rotation = Quaternion.Euler(e.newValue);
+
+                    _path.SetPoint(index, point, false);
+                    SceneView.lastActiveSceneView.Repaint();
+                });
+
+                rotField.RegisterValueChangedCallback(_rotationFieldValueChangedCallbacks[element]);
+                #endregion
+
+                #region Add and remove point
                 var addButton = element.Q<Button>("add-point-button");
-                _addButtonCallbacks.Add(element, () => AddElement(index));
+                _addButtonCallbacks.Add(element, () => InsertElement(index));
                 addButton.clicked += _addButtonCallbacks[element];
 
                 var removeButton = element.Q<Button>("remove-point-button");
                 _removeButtonCallbacks.Add(element, () => RemoveElement(index));
                 removeButton.clicked += _removeButtonCallbacks[element];
-#endregion
+                #endregion
             }
 
             void Unbind(VisualElement element, int index)
@@ -376,6 +441,10 @@ namespace Paths
                 var posField = element.Q<Vector3Field>("point-position");
                 posField.UnregisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
                 _positionFieldValueChangedCallbacks.Remove(element);
+
+                var rotField = element.Q<Vector3Field>("point-rotation");
+                rotField.UnregisterValueChangedCallback(_rotationFieldValueChangedCallbacks[element]);
+                _rotationFieldValueChangedCallbacks.Remove(element);
 
                 var addButton = element.Q<Button>("add-point-button");
                 addButton.clicked -= _addButtonCallbacks[element];
@@ -405,7 +474,7 @@ namespace Paths
             return _inspector;
         }
 
-#region Draw primitives
+        #region Draw primitives
         private void DrawLine(Vector3 from, Vector3 to, Color color, bool useDotted = false)
         {
             Handles.color = color;
@@ -465,15 +534,16 @@ namespace Paths
 
             var removeRect = Rect.zero;
             var needDrawRemoveButton = false;
+            var point = GetPathPoint(number, false);
 
             if (_selectedPointIndex != number)
             {
-                removeRect = GetPointRectInSceneView(_path.GetPoint(number, false), 16f, true);
+                removeRect = GetPointRectInSceneView(point.Position, 16f, true);
                 removeRect.y -= isControl ? 30f : 24f;
 
                 if (needDrawRemoveButton = Vector2.Distance(Event.current.mousePosition, removeRect.center) <= 20f)
                 {
-                    var pointCenter = GetPointRectInSceneView(_path.GetPoint(number, false), 24f, true).center;
+                    var pointCenter = GetPointRectInSceneView(point.Position, 24f, true).center;
                     var endCenter = removeRect.center;
                     endCenter.x -= 1f;
 
@@ -482,17 +552,17 @@ namespace Paths
                 }
             }
 
-            GUI.DrawTexture(GetPointRectInSceneView(_path.GetPoint(number, false), 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+            GUI.DrawTexture(GetPointRectInSceneView(point.Position, 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
 
             if (isControl)
-                GUI.DrawTexture(GetPointRectInSceneView(_path.GetPoint(number, false), 36f, true), _textures["dotted circle"]);
+                GUI.DrawTexture(GetPointRectInSceneView(point.Position, 36f, true), _textures["dotted circle"]);
 
             if (drawBlackDot)
-                GUI.DrawTexture(GetPointRectInSceneView(_path.GetPoint(number, false), 8f, true), _textures["black circle"]);
+                GUI.DrawTexture(GetPointRectInSceneView(point.Position, 8f, true), _textures["black circle"]);
 
             if (drawLabel)
             {
-                var labelRect = GetPointRectInSceneView(_path.GetPoint(number, false), 24f, true);
+                var labelRect = GetPointRectInSceneView(point.Position, 24f, true);
                 if (number.ToString().Length != 2)
                     labelRect.x += 1;
 
@@ -500,7 +570,7 @@ namespace Paths
 
             }
 
-            if (_selectedPointIndex != number && GUI.Button(GetPointRectInSceneView(_path.GetPoint(number, false), 24f, true), "", _skin.button))
+            if (_selectedPointIndex != number && GUI.Button(GetPointRectInSceneView(point.Position, 24f, true), "", _skin.button))
                 SelectPointInListView(number);
 
             if (_selectedPointIndex != number && needDrawRemoveButton)
@@ -528,13 +598,27 @@ namespace Paths
 
             if (_selectedPointIndex == number)
             {
-                var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(_path.GetPoint(number, false)), Tools.pivotRotation == PivotRotation.Local ? _path.transform.rotation : Quaternion.identity));
-                var distance = Vector3.Distance(newPos, _path.GetPoint(number, false));
+                if (Tools.current == Tool.Move)
+                {
+                    var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(point.Position), Quaternion.identity));
+                    var distance = Vector3.Distance(newPos, point.Position);
 
-                if (distance == 0f || distance < 0.000001f)
-                    return;
+                    if (distance == 0f || distance < 0.000001f)
+                        return;
 
-                _path.SetPoint(number, newPos, false);
+                    _path.SetPoint(number, newPos, false);
+                }
+                else if (Tools.current == Tool.Rotate)
+                {
+                    var rot = TransformRotation(point.Rotation);
+                    var newRot = Handles.RotationHandle(rot, TransformPoint(point.Position));
+                    var position = Vector3.Distance(rot.eulerAngles, newRot.eulerAngles);
+
+                    if (position == 0f || position < 0.000001f)
+                        return;
+
+                    _path.SetPoint(number, newRot, true);
+                }
             }
         }
 
@@ -555,7 +639,7 @@ namespace Paths
             GUI.Label(labelRect, "+", _skin.customStyles[5]);
 
             if (GUI.Button(GetPointRectInSceneView(position, 24f), "", _skin.button))
-                _pointsToAdd.Add(() => AddElement(insertTo, _path.transform.InverseTransformPoint(position)));
+                _pointsToAdd.Add(() => InsertElement(insertTo, new Point(_path.transform.InverseTransformPoint(position), Quaternion.Lerp(GetPathPoint(insertTo - 1).Rotation, GetPathPoint(insertTo).Rotation, 0.5f))));
 
             Handles.EndGUI();
 
@@ -564,16 +648,16 @@ namespace Paths
 
         private void DrawLastAddButton()
         {
-            var direction = (_path.GetPoint(_path.PointsCount - 1, false) - _path.GetPoint(_path.PointsCount - 2, false)).normalized;
+            var direction = (GetPathPoint(_path.PointsCount - 1, false).Position - GetPathPoint(_path.PointsCount - 2, false).Position).normalized;
 
             var averageDistance = 0f;
             for (int i = 0; i < _path.PointsCount - 1; i++)
-                averageDistance += Vector3.Distance(_path.GetPoint(i, false), _path.GetPoint(i + 1, false));
+                averageDistance += Vector3.Distance(GetPathPoint(i, false).Position, GetPathPoint(i + 1, false).Position);
 
             direction *= averageDistance / (_path.PointsCount - 1);
-            var localPos = _path.GetPoint(_path.PointsCount - 1, false) + direction;
+            var localPos = GetPathPoint(_path.PointsCount - 1, false).Position + direction;
 
-            DrawLine(_path.GetPoint(_path.PointsCount - 1), TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
+            DrawLine(GetPathPoint(_path.PointsCount - 1).Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
 
             Handles.BeginGUI();
             GUI.DrawTexture(GetPointRectInSceneView(localPos, 24f, true), _textures["blue circle"]);
@@ -583,15 +667,15 @@ namespace Paths
             GUI.Label(labelRect, "+", _skin.customStyles[5]);
 
             if (GUI.Button(GetPointRectInSceneView(localPos, 24f, true), "", _skin.button))
-                _pointsToAdd.Add(() => AddElement(_path.PointsCount, localPos));
+                _pointsToAdd.Add(() => InsertElement(_path.PointsCount, new Point(localPos, GetPathPoint(_path.PointsCount - 1).Rotation)));
 
             Handles.EndGUI();
 
             SceneView.lastActiveSceneView.Repaint();
         }
-#endregion
+        #endregion
 
-#region Draw points
+        #region Draw points
         private void DrawOnePoint()
         {
             DrawRoot();
@@ -600,27 +684,31 @@ namespace Paths
 
         private void DrawTwoPoints()
         {
-            DrawLine(_path.GetPoint(0), _path.GetPoint(1), Color.yellow);
+            DrawLine(GetPathPoint(0).Position, GetPathPoint(1).Position, Color.yellow);
             DrawRoot();
             DrawPoint(0, false, false, true);
-            DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 1);
+            DrawAdjacentAddButton(GetPathPoint(0, 0.5f).Position, 1);
             DrawLastAddButton();
             DrawPoint(1, false, false, true);
         }
 
         private void DrawThreePoints()
         {
-            DrawCatmullRomLine(_path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), _path.GetPoint(0), Color.yellow);
+            var point0 = GetPathPoint(0);
+            var point1 = GetPathPoint(1);
+            var point2 = GetPathPoint(2);
+
+            DrawCatmullRomLine(point0.Position, point1.Position, point2.Position, point0.Position, Color.yellow);
 
             if (!_path.Looped)
             {
-                DrawCatmullRomLine(_path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), Color.white, true);
-                DrawCatmullRomLine(_path.GetPoint(1), _path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), Color.white, true);
+                DrawCatmullRomLine(point2.Position, point0.Position, point1.Position, point2.Position, Color.white, true);
+                DrawCatmullRomLine(point1.Position, point2.Position, point0.Position, point1.Position, Color.white, true);
             }
             else
             {
-                DrawCatmullRomLine(_path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), Color.yellow);
-                DrawCatmullRomLine(_path.GetPoint(1), _path.GetPoint(2), _path.GetPoint(0), _path.GetPoint(1), Color.yellow);
+                DrawCatmullRomLine(point2.Position, point0.Position, point1.Position, point2.Position, Color.yellow);
+                DrawCatmullRomLine(point1.Position, point2.Position, point0.Position, point1.Position, Color.yellow);
             }
 
             DrawRoot();
@@ -629,46 +717,47 @@ namespace Paths
             {
                 DrawPoint(0, true, false, true);
                 DrawPoint(1, false, false, true);
-                DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 2);
+                DrawAdjacentAddButton(GetPathPoint(0, 0.5f).Position, 2);
                 DrawLastAddButton();
                 DrawPoint(2, false, false, true);
             }
             else
             {
                 DrawPoint(0, false, false, true);
-                DrawAdjacentAddButton(_path.GetPoint(0, 0.5f), 1);
+                DrawAdjacentAddButton(GetPathPoint(0, 0.5f).Position, 1);
                 DrawPoint(1, false, false, true);
-                DrawAdjacentAddButton(_path.GetPoint(1, 0.5f), 2);
+                DrawAdjacentAddButton(GetPathPoint(1, 0.5f).Position, 2);
                 DrawLastAddButton();
                 DrawPoint(2, false, false, true);
-                DrawAdjacentAddButton(_path.GetPoint(2, 0.5f), 3);
+                DrawAdjacentAddButton(GetPathPoint(2, 0.5f).Position, 3);
             }
         }
 
         private void DrawManyPoints()
         {
             for (int i = 0; i < _path.PointsCount - 3; i++)
-                DrawCatmullRomLine(_path.GetPoint(i), _path.GetPoint(i + 1), _path.GetPoint(i + 2), _path.GetPoint(i + 3), Color.yellow);
+                DrawCatmullRomLine(GetPathPoint(i).Position, GetPathPoint(i + 1).Position, GetPathPoint(i + 2).Position, GetPathPoint(i + 3).Position, Color.yellow);
 
             if (_path.Looped)
             {
-                DrawCatmullRomLine(_path.GetPoint(_path.PointsCount - 3), _path.GetPoint(_path.PointsCount - 2), _path.GetPoint(_path.PointsCount - 1), _path.GetPoint(0), Color.yellow);
-                DrawCatmullRomLine(_path.GetPoint(_path.PointsCount - 2), _path.GetPoint(_path.PointsCount - 1), _path.GetPoint(0), _path.GetPoint(1), Color.yellow);
-                DrawCatmullRomLine(_path.GetPoint(_path.PointsCount - 1), _path.GetPoint(0), _path.GetPoint(1), _path.GetPoint(2), Color.yellow);
+                DrawCatmullRomLine(GetPathPoint(_path.PointsCount - 3).Position, GetPathPoint(_path.PointsCount - 2).Position, GetPathPoint(_path.PointsCount - 1).Position, GetPathPoint(0).Position, Color.yellow);
+                DrawCatmullRomLine(GetPathPoint(_path.PointsCount - 2).Position, GetPathPoint(_path.PointsCount - 1).Position, GetPathPoint(0).Position, GetPathPoint(1).Position, Color.yellow);
+                DrawCatmullRomLine(GetPathPoint(_path.PointsCount - 1).Position, GetPathPoint(0).Position, GetPathPoint(1).Position, GetPathPoint(2).Position, Color.yellow);
             }
             else
             {
-                DrawLine(_path.GetPoint(_path.PointsCount - 2), _path.GetPoint(_path.PointsCount - 1), Color.white, true);
-                DrawLine(_path.GetPoint(0), _path.GetPoint(1), Color.white, true);
+                DrawLine(GetPathPoint(_path.PointsCount - 2).Position, GetPathPoint(_path.PointsCount - 1).Position, Color.white, true);
+                DrawLine(GetPathPoint(0).Position, GetPathPoint(1).Position, Color.white, true);
             }
 
 
             DrawRoot();
+            DrawLastAddButton();
 
             for (int i = 1; i < _path.PointsCount - 2; i++)
             {
                 DrawPoint(i, false, false, true);
-                DrawAdjacentAddButton(_path.GetPoint(i - 1, 0.5f), _path.Looped ? i : i + 1);
+                DrawAdjacentAddButton(GetPathPoint(i - 1, 0.5f).Position, _path.Looped ? i : i + 1);
             }
 
             DrawPoint(_path.PointsCount - 2, false, false, true);
@@ -678,7 +767,7 @@ namespace Paths
                 DrawPoint(0, false, false, true);
 
                 for (int i = 3; i >= 1; i--)
-                    DrawAdjacentAddButton(_path.GetPoint(_path.PointsCount - i, 0.5f), _path.PointsCount - i + 1);
+                    DrawAdjacentAddButton(GetPathPoint(_path.PointsCount - i, 0.5f).Position, _path.PointsCount - i + 1);
 
                 DrawPoint(_path.PointsCount - 1, false, false, true);
             }
@@ -687,10 +776,8 @@ namespace Paths
                 DrawPoint(0, false, false, true, false);
                 DrawPoint(_path.PointsCount - 1, false, false, true, false);
             }
-
-            DrawLastAddButton();
         }
-#endregion
+        #endregion
 
         private void OnSceneGUI()
         {
@@ -711,6 +798,12 @@ namespace Paths
                 DrawThreePoints();
             else if (_path.PointsCount > 3)
                 DrawManyPoints();
+
+            if (Tools.current == Tool.Rotate && _selectedPointIndex != -1)
+            {
+                var point = GetPathPoint(_selectedPointIndex);
+                Handles.PositionHandle(point.Position, point.Rotation);
+            }
 
             foreach (var index in _pointsToRemove.OrderByDescending(i => i))
                 RemoveElement(index);

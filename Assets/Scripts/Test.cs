@@ -2,6 +2,7 @@ using Paths;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 public class Test : MonoBehaviour
@@ -15,6 +16,6 @@ public class Test : MonoBehaviour
 
     private void Update()
     {
-        transform.position = _path.GetPoint(_distance);
+        Debug.Log(SceneView.lastActiveSceneView.camera.WorldToScreenPoint(transform.position));
     }
 }
