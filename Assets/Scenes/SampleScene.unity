@@ -333,14 +333,20 @@ MonoBehaviour:
   _points:
   - _position: {x: -0.5, y: 0, z: 0}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
+  - _position: {x: 0, y: 0.44267935, z: 1}
+    _rotation: {x: 0.34187573, y: 0.0074266717, z: -0.25320038, w: 0.9049615}
+  - _position: {x: 0.35227296, y: -0.7997037, z: 0.54505414}
+    _rotation: {x: 0.49215811, y: 0.010691628, z: -0.3645027, w: 0.7904453}
   - _position: {x: 0.5, y: 0, z: 0}
     _rotation: {x: 0.61876863, y: 0.01344195, z: -0.45827347, w: 0.6379108}
   _segmentsLengths:
-  - 1
-  - 1
-  _segmentCalculatorIndex: 2
-  _resolution: 25
-  _step: 0.04
+  - 1.2362912
+  - 1.3918519
+  - 1.0192633
+  - 1.0316913
+  _segmentCalculatorIndex: 3
+  _resolution: 3
+  _step: 0.33333334
   _looped: 1
 --- !u!4 &1474961615
 Transform:

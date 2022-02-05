@@ -16,6 +16,6 @@ public class Test : MonoBehaviour
 
     private void Update()
     {
-        Debug.Log(SceneView.lastActiveSceneView.camera.WorldToScreenPoint(transform.position));
+        Debug.Log(Vector3.right == Vector3.up);
     }
 }

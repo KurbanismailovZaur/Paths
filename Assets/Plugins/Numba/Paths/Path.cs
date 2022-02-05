@@ -71,6 +71,7 @@ namespace Paths
         }
         #endregion
 
+        #region State
         [SerializeField]
         private List<Point> _points = new();
 
@@ -128,6 +129,7 @@ namespace Paths
         }
 
         public float Length { get; private set; }
+        #endregion
 
         // Used by serialization system.
         private Path() => _segmentCalculators = new SegmentLengthCalculator[]
@@ -138,6 +140,7 @@ namespace Paths
             new ManySegmentsCalculator(this)
         };
 
+        #region Create
         public static Path Create() => Create(Vector3.zero);
 
         public static Path Create(Vector3 pivotPosition)
@@ -159,6 +162,7 @@ namespace Paths
 
             return path;
         }
+        #endregion
 
         #region Editor
 #if UNITY_EDITOR
@@ -178,6 +182,7 @@ namespace Paths
 #endif
         #endregion
 
+        #region Optimize
         public void OptimizeByAngle(float maxAngle = 8f)
         {
             bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out PointData pointData, out Vector3 vector, out float angle)
@@ -307,47 +312,14 @@ namespace Paths
 
             Resolution = Mathf.Max((int)resolution, 4);
         }
+        #endregion
 
         #region Transforms
-        private void CheckAndTransformPositionToLocal(ref Vector3 position, bool useGlobal)
+        private PointData TransformPointToWorldSpace(PointData pointData)
         {
-            if (useGlobal)
-                position = transform.InverseTransformPoint(position);
-        }
-
-        private void CheckAndTransformRotationToLocal(ref Quaternion rotation, bool useGlobal)
-        {
-            if (useGlobal)
-                rotation = Quaternion.Inverse(transform.rotation) * rotation;
-        }
-
-        private void CheckAndTransformPointToLocal(ref Point point, bool useGlobal)
-        {
-            if (useGlobal)
-                point.Position = transform.InverseTransformPoint(point.Position);
-        }
-
-        private Point CheckAndTransformPointToGlobal(int index, bool useGlobal)
-        {
-            var point = _points[index];
-
-            if (useGlobal)
-            {
-                point.Position = transform.TransformPoint(point.Position);
-                point.Rotation = transform.rotation * point.Rotation;
-            }
-
-            return point;
-        }
-
-        private PointData CheckAndTransformPointToGlobal(PointData pointData, bool useGlobal)
-        {
-            if (useGlobal)
-            {
-                pointData.Position = transform.TransformPoint(pointData.Position);
-                pointData.Rotation = transform.rotation * pointData.Rotation;
-                pointData.Direction = transform.TransformDirection(pointData.Direction);
-            }
+            pointData.Position = transform.TransformPoint(pointData.Position);
+            pointData.Rotation = transform.rotation * pointData.Rotation;
+            pointData.Direction = transform.TransformDirection(pointData.Direction);    
 
             return pointData;
         }
@@ -415,7 +387,8 @@ namespace Paths
 
         public void AddPoint(Point point, bool useGlobal = true)
         {
-            CheckAndTransformPointToLocal(ref point, useGlobal);
+            if (useGlobal)
+                point.Position = transform.InverseTransformPoint(point.Position);
 
             _points.Add(point);
             _segmentsLengths.Add(0f);
@@ -437,7 +410,8 @@ namespace Paths
 
         public void InsertPoint(int index, Point point, bool useGlobal = true)
         {
-            CheckAndTransformPointToLocal(ref point, useGlobal);
+            if (useGlobal)
+                point.Position = transform.InverseTransformPoint(point.Position);
 
             _points.Insert(index, point);
             _segmentsLengths.Insert(index, 0f);
@@ -457,31 +431,40 @@ namespace Paths
 
         public bool ContainsPoint(Vector3 position, bool useGlobal = true)
         {
-            CheckAndTransformPositionToLocal(ref position, useGlobal);
+            if (useGlobal)
+                position = transform.InverseTransformPoint(position);
+
             return _points.FindIndex(p => p.Position == position) != -1;
         }
 
         public bool ContainsPoint(Point point, bool useGlobal = true)
         {
-            CheckAndTransformPointToLocal(ref point, useGlobal);
+            if (useGlobal)
+                point.Position = transform.InverseTransformPoint(point.Position);
+
             return _points.Contains(point);
         }
 
         public int IndexOfPoint(Vector3 position, bool useGlobal = true)
         {
-            CheckAndTransformPositionToLocal(ref position, useGlobal);
+            if (useGlobal)
+                position = transform.InverseTransformPoint(position);
+
             return _points.FindIndex(p => p.Position == position);
         }
 
         public int IndexOfPoint(Point point, bool useGlobal = true)
         {
-            CheckAndTransformPointToLocal(ref point, useGlobal);
+            if (useGlobal)
+                point.Position = transform.InverseTransformPoint(point.Position);
+
             return _points.IndexOf(point);
         }
 
         public bool RemovePoint(Vector3 position, bool useGlobal = true)
         {
-            CheckAndTransformPositionToLocal(ref position, useGlobal);
+            if (useGlobal)
+                position = transform.InverseTransformPoint(position);
 
             var index = _points.FindIndex(p => p.Position == position);
             if (index == -1)
@@ -493,7 +476,8 @@ namespace Paths
 
         public bool RemovePoint(Point point, bool useGlobal = true)
         {
-            CheckAndTransformPointToLocal(ref point, useGlobal);
+            if (useGlobal)
+                point.Position = transform.InverseTransformPoint(point.Position);
 
             var index = _points.IndexOf(point);
             if (index == -1)
@@ -537,7 +521,9 @@ namespace Paths
 
         public void SetPoint(int index, Vector3 position, bool useGlobal = true)
         {
-            CheckAndTransformPositionToLocal(ref position, useGlobal);
+            if (useGlobal)
+                position = transform.InverseTransformPoint(position);
+
             _points[index] = new Point(position, _points[index].Rotation);
 
             RecalculateSegmentsAfterChanging(index);
@@ -545,7 +531,9 @@ namespace Paths
 
         public void SetPoint(int index, Quaternion rotation, bool useGlobal = true)
         {
-            CheckAndTransformRotationToLocal(ref rotation, useGlobal);
+            if (useGlobal)
+                rotation = Quaternion.Inverse(transform.rotation) * rotation;
+
             _points[index] = new Point(_points[index].Position, rotation);
 
             RecalculateSegmentsAfterChanging(index);
@@ -555,7 +543,9 @@ namespace Paths
 
         public void SetPoint(int index, Point point, bool useGlobal = true)
         {
-            CheckAndTransformPointToLocal(ref point, useGlobal);
+            if (useGlobal)
+                point.Position = transform.InverseTransformPoint(point.Position);
+
             _points[index] = point;
 
             RecalculateSegmentsAfterChanging(index);
@@ -589,7 +579,10 @@ namespace Paths
             var direction = _points.Count == 1 ? Vector3.zero : GetSegmentStartDirection(index);
             var pointData = new PointData(point, direction);
 
-            return CheckAndTransformPointToGlobal(pointData, useGlobal);
+            if (useGlobal)
+                 pointData = TransformPointToWorldSpace(pointData);
+
+            return pointData;
         }
 
         public PointData GetPoint(int index, bool useGlobal = true)
@@ -616,7 +609,17 @@ namespace Paths
                 throw new Exception("Path does not contain points.");
 
             if (_points.Count == 1)
-                return new PointData(CheckAndTransformPointToGlobal(0, useGlobal), Vector3.zero);
+            {
+                var point = _points[0];
+
+                if (useGlobal)
+                {
+                    point.Position = transform.TransformPoint(point.Position);
+                    point.Rotation = transform.rotation * point.Rotation;
+                }
+
+                return new PointData(point, Vector3.zero);
+            }
 
             var length = GetSegmentLength(segment);
             float normalizedDistance;
@@ -659,16 +662,20 @@ namespace Paths
             Point p0, p1, p2, p3;
             Vector3 direction;
 
-            if (distance == 0f)
+            if (Mathf.Approximately(distance, 0f))
                 return GetPointSimple(segment, useGlobal);
-            else if (distance == length)
+            else if (Mathf.Approximately(distance , length))
             {
                 if (_looped && segment != SegmentsCount - 1 || !_looped && segment - 1 != SegmentsCount - 1)
                     return GetPointSimple(segment + 1, useGlobal);
                 else
                 {
                     direction = GetSegmentEndDirection(segment);
-                    return CheckAndTransformPointToGlobal(new PointData(_points[WrapIndex(segment + 1)], direction), useGlobal);
+                    
+                    if (useGlobal)
+                        pointData = TransformPointToWorldSpace(new PointData(_points[WrapIndex(segment + 1)], direction));
+
+                    return pointData;
                 }
             }
 
@@ -696,7 +703,10 @@ namespace Paths
                     pointData.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
                     pointData.Direction = (position - lastPosition).normalized;
 
-                    return CheckAndTransformPointToGlobal(pointData, useGlobal);
+                    if (useGlobal)
+                        pointData = TransformPointToWorldSpace(pointData);
+
+                    return pointData;
                 }
 
                 distance -= currentLength;
@@ -711,7 +721,10 @@ namespace Paths
             pointData.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
             pointData.Direction = (position - lastPosition).normalized;
 
-            return CheckAndTransformPointToGlobal(pointData, useGlobal);
+            if (useGlobal)
+                pointData = TransformPointToWorldSpace(pointData);
+
+            return pointData;
         }
 
         public PointData GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)

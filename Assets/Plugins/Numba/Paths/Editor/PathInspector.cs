@@ -549,7 +549,7 @@ namespace Paths
                     var endCenter = removeRect.center;
                     endCenter.x -= 1f;
 
-                    var lineRect = new Rect(endCenter, new Vector2(2f, pointCenter.y - endCenter.y));
+                    var lineRect = new Rect(endCenter, new Vector2(4f, pointCenter.y - endCenter.y));
                     GUI.DrawTexture(lineRect, _textures["red rect"]);
                 }
             }
@@ -610,7 +610,7 @@ namespace Paths
                     var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(point.Position), Quaternion.identity));
                     var distance = Vector3.Distance(newPos, point.Position);
 
-                    if (distance == 0f || distance < 0.000001f)
+                    if (Mathf.Approximately(distance, 0f))
                         return;
 
                     _path.SetPoint(number, newPos, false);
@@ -621,7 +621,7 @@ namespace Paths
                     var newRot = Handles.RotationHandle(rot, TransformPoint(point.Position));
                     var position = Vector3.Distance(rot.eulerAngles, newRot.eulerAngles);
 
-                    if (position == 0f || position < 0.000001f)
+                    if (Mathf.Approximately(position, 0f))
                         return;
 
                     _path.SetPoint(number, newRot, true);
