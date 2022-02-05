@@ -10,15 +10,15 @@ namespace Paths
 
         public Quaternion Rotation { get; set; }
 
-        public Vector3 PathDirection { get; set; }
+        public Vector3 Direction { get; set; }
 
-        public PointData(Point point, Vector3 pathDirection) : this(point.Position, point.Rotation, pathDirection) { }
+        public PointData(Point point, Vector3 direction) : this(point.Position, point.Rotation, direction) { }
 
-        public PointData(Vector3 position, Quaternion rotation, Vector3 pathDirection)
+        public PointData(Vector3 position, Quaternion rotation, Vector3 direction)
         {
             Position = position;
             Rotation = rotation;
-            PathDirection = pathDirection;
+            Direction = direction;
         }
     }
 }

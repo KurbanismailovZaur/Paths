@@ -180,10 +180,10 @@ namespace Paths
 
         public void OptimizeByAngle(float maxAngle = 8f)
         {
-            bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out Point point, out Vector3 vector, out float angle)
+            bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out PointData pointData, out Vector3 vector, out float angle)
             {
-                point = GetRawPoint(segment, t);
-                vector = (point.Position - lastPosition).normalized;
+                pointData = GetPoint(segment, t);
+                vector = (pointData.Position - lastPosition).normalized;
 
                 return (angle = Vector3.Angle(lastVector, vector)) > maxAngle;
             }
@@ -211,39 +211,39 @@ namespace Paths
                     prevSegment = WrapIndex(prevSegment);
                     RecalculateSegmentLength(prevSegment);
 
-                    lastVector = (GetRawPoint(currentSegment, 0f).Position - GetRawPoint(prevSegment, 1f - _step).Position).normalized;
+                    lastVector = (GetPoint(currentSegment, 0f).Position - GetPoint(prevSegment, 1f - _step).Position).normalized;
                 }
                 else
                 {
                     if (currentSegment == 0)
-                        lastVector = (GetRawPoint(currentSegment, _step).Position - GetRawPoint(currentSegment, 0f).Position).normalized;
+                        lastVector = (GetPoint(currentSegment, _step).Position - GetPoint(currentSegment, 0f).Position).normalized;
                     else
                     {
                         RecalculateSegmentLength(prevSegment);
-                        lastVector = (GetRawPoint(currentSegment, 0f).Position - GetRawPoint(prevSegment, 1f - _step).Position).normalized;
+                        lastVector = (GetPoint(currentSegment, 0f).Position - GetPoint(prevSegment, 1f - _step).Position).normalized;
                     }
                 }
 
                 for (int j = currentSegment; j < SegmentsCount; j++)
                 {
                     var t = _step;
-                    var lastPosition = GetRawPoint(j, 0f).Position;
+                    var lastPosition = GetPoint(j, 0f).Position;
 
-                    Point point;
+                    PointData pointData;
                     Vector3 vector;
                     float angle;
 
                     while (t < 1f)
                     {
-                        if (CheckAngle(j, t, lastPosition, lastVector, out point, out vector, out angle))
+                        if (CheckAngle(j, t, lastPosition, lastVector, out pointData, out vector, out angle))
                             goto ResolutionCycle;
 
-                        lastPosition = point.Position;
+                        lastPosition = pointData.Position;
                         lastVector = vector;
                         t += _step;
                     }
 
-                    if (CheckAngle(j, 1f, lastPosition, lastVector, out point, out vector, out angle))
+                    if (CheckAngle(j, 1f, lastPosition, lastVector, out pointData, out vector, out angle))
                         goto ResolutionCycle;
 
                     lastVector = vector;
@@ -338,6 +338,18 @@ namespace Paths
             }
 
             return point;
+        }
+
+        private PointData CheckAndTransformPointToGlobal(PointData pointData, bool useGlobal)
+        {
+            if (useGlobal)
+            {
+                pointData.Position = transform.TransformPoint(pointData.Position);
+                pointData.Rotation = transform.rotation * pointData.Rotation;
+                pointData.Direction = transform.TransformDirection(pointData.Direction);
+            }
+
+            return pointData;
         }
         #endregion
 
@@ -549,34 +561,62 @@ namespace Paths
             RecalculateSegmentsAfterChanging(index);
         }
 
-        private Point GetRawPoint(int index, bool useGlobal = true) => CheckAndTransformPointToGlobal(index, useGlobal);
+        private Vector3 GetSegmentStartDirection(int segment)
+        {
+            var p0 = _points[WrapIndex(segment - 1)];
+            var p1 = _points[WrapIndex(segment)];
+            var p2 = _points[WrapIndex(segment + 1)];
+            var p3 = _points[WrapIndex(segment + 2)];
 
-        //private Vector3 GetPointPathDirection(int index)
-        //{
-        //    var p0 = CheckAndTransformPointToGlobal(WrapIndex(index - 1), true);
-        //    var p1 = CheckAndTransformPointToGlobal(WrapIndex(index), true);
-        //    var p2 = CheckAndTransformPointToGlobal(WrapIndex(index + 1), true);
-        //    var p3 = CheckAndTransformPointToGlobal(WrapIndex(index + 2), true);
+            var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
+            return (newPoint - p1.Position).normalized;
+        }
 
-        //    var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
-        //    return (newPoint - p1.Position).normalized;
-        //}
+        private Vector3 GetSegmentEndDirection(int segment)
+        {
+            var p0 = _points[WrapIndex(segment + 2)];
+            var p1 = _points[WrapIndex(segment + 1)];
+            var p2 = _points[WrapIndex(segment)];
+            var p3 = _points[WrapIndex(segment - 1)];
 
-        //public PointData GetPoint(int index, bool useGlobal = true)
-        //{
-        //    var point = GetPointWithAngle(index, useGlobal);
+            var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
+            return (p1.Position - newPoint).normalized;
+        }
 
+        public PointData GetPointSimple(int index, bool useGlobal = true)
+        {
+            var point = _points[index];
+            var direction = _points.Count == 1 ? Vector3.zero : GetSegmentStartDirection(index);
+            var pointData = new PointData(point, direction);
 
-        //    return new PointData(point, GetPointPathDirection(index));
-        //}
+            return CheckAndTransformPointToGlobal(pointData, useGlobal);
+        }
 
-        private Point GetRawPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        public PointData GetPoint(int index, bool useGlobal = true)
+        {
+            if (index < 0)
+                throw new Exception("Index can't be less that 0.");
+
+            if (_points.Count == 0)
+                throw new Exception("Path does not exist.");
+
+            if (!_looped && _points.Count > 2)
+            {
+                index++;
+                if (_points.Count == 3 && index > 2 || _points.Count > 3 && index > _points.Count - 2)
+                    throw new Exception("Index can't be greater than active points count.");
+            }
+
+            return GetPointSimple(index, useGlobal);
+        }
+
+        public PointData GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (_points.Count == 0)
                 throw new Exception("Path does not contain points.");
 
             if (_points.Count == 1)
-                return CheckAndTransformPointToGlobal(0, useGlobal);
+                return new PointData(CheckAndTransformPointToGlobal(0, useGlobal), Vector3.zero);
 
             var length = GetSegmentLength(segment);
             float normalizedDistance;
@@ -592,18 +632,23 @@ namespace Paths
                 normalizedDistance = distance / length;
             }
 
-            Point point = new();
+            PointData pointData = new();
 
             if (_points.Count == 2)
             {
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
-                point.Position = Vector3.Lerp(_points[from].Position, _points[to].Position, normalizedDistance);
-                point.Rotation = Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance);
+                pointData.Position = Vector3.Lerp(_points[from].Position, _points[to].Position, normalizedDistance);
+                pointData.Rotation = Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance);
+                pointData.Direction = (_points[to].Position - _points[from].Position).normalized;
 
                 if (useGlobal)
-                    point.Position = transform.TransformPoint(point.Position);
-                
-                return point;
+                {
+                    pointData.Position = transform.TransformPoint(pointData.Position);
+                    pointData.Rotation = transform.rotation * pointData.Rotation;
+                    pointData.Direction = transform.TransformDirection(pointData.Direction);
+                }
+
+                return pointData;
             }
 
             if (_points.Count > 2 && !_looped)
@@ -611,20 +656,31 @@ namespace Paths
 
             // For 3 and more points..
 
+            Point p0, p1, p2, p3;
+            Vector3 direction;
+
             if (distance == 0f)
-                return CheckAndTransformPointToGlobal(segment, useGlobal);
+                return GetPointSimple(segment, useGlobal);
             else if (distance == length)
-                return CheckAndTransformPointToGlobal(WrapIndex(segment + 1), useGlobal);
+            {
+                if (segment != SegmentsCount - 1)
+                    return GetPointSimple(segment + 1, useGlobal);
+                else
+                {
+                    direction = GetSegmentEndDirection(segment);
+                    return CheckAndTransformPointToGlobal(new PointData(_points[WrapIndex(segment + 1)], direction), useGlobal);
+                }
+            }
 
             var step = 1f / Resolution;
             var t = step;
 
             var lastPosition = _points[segment].Position;
 
-            var p0 = _points[WrapIndex(segment - 1)];
-            var p1 = _points[segment];
-            var p2 = _points[WrapIndex(segment + 1)];
-            var p3 = _points[WrapIndex(segment + 2)];
+            p0 = _points[WrapIndex(segment - 1)];
+            p1 = _points[segment];
+            p2 = _points[WrapIndex(segment + 1)];
+            p3 = _points[WrapIndex(segment + 2)];
 
             Vector3 position;
             float currentLength;
@@ -636,13 +692,11 @@ namespace Paths
 
                 if (distance <= currentLength)
                 {
-                    point.Position = Vector3.Lerp(lastPosition, position, distance / currentLength);
-                    point.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
+                    pointData.Position = Vector3.Lerp(lastPosition, position, distance / currentLength);
+                    pointData.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
+                    pointData.Direction = (position - lastPosition).normalized;
 
-                    if (useGlobal)
-                        point.Position = transform.TransformPoint(point.Position);
-
-                    return point;
+                    return CheckAndTransformPointToGlobal(pointData, useGlobal);
                 }
 
                 distance -= currentLength;
@@ -653,44 +707,38 @@ namespace Paths
             position = CatmullRomSpline.CalculatePoint(1f, p0.Position, p1.Position, p2.Position, p3.Position);
             currentLength = Vector3.Distance(lastPosition, position);
 
-            point.Position = Vector3.Lerp(lastPosition, position, distance / currentLength);
-            point.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
+            pointData.Position = Vector3.Lerp(lastPosition, position, distance / currentLength);
+            pointData.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
+            pointData.Direction = (position - lastPosition).normalized;
 
-            if (useGlobal)
-                point.Position = transform.TransformPoint(point.Position);
-
-            return point;
+            return CheckAndTransformPointToGlobal(pointData, useGlobal);
         }
 
-        //public PointData GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        public PointData GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        {
+            if (useNormalizedDistance)
+                distance *= Length;
 
-        //public PointData GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
-        //{
-        //    if (useNormalizedDistance)
-        //        distance *= Length;
+            distance = Mathf.Clamp(distance, 0f, Length);
 
-        //    distance = Mathf.Clamp(distance, 0f, Length);
+            var segment = 0;
+            for (; segment < SegmentsCount; segment++)
+            {
+                var segmentLength = GetSegmentLength(segment);
 
-        //    var segment = 0;
-        //    for (; segment < SegmentsCount; segment++)
-        //    {
-        //        var segmentLength = GetSegmentLength(segment);
+                if (distance <= segmentLength)
+                    break;
 
-        //        if (distance <= segmentLength)
-        //            break;
+                distance -= segmentLength;
+            }
 
-        //        distance -= segmentLength;
-        //    }
+            if (segment == SegmentsCount)
+            {
+                segment -= 1;
+                distance = GetSegmentLength(SegmentsCount - 1);
+            }
 
-        //    if (segment == SegmentsCount)
-        //    {
-        //        segment -= 1;
-        //        distance = GetSegmentLength(SegmentsCount - 1);
-        //    }
-
-        //    var point = GetPoint(segment, distance, false, useGlobal);
-            
-        //    return new PointData(point.Position, Vector3.forward, Vector3.up);
-        //}
+            return GetPoint(segment, distance, false, useGlobal);
+        }
     }
 }

@@ -21,6 +21,7 @@
     </ui:GroupBox>
     <ui:GroupBox style="flex-direction: column; padding-top: 4px; padding-bottom: 8px; padding-left: 8px; padding-right: 12px; margin-left: 0; margin-right: 0; margin-bottom: 6px; background-color: rgba(0, 255, 120, 0.06); border-top-left-radius: 6px; border-bottom-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-left-color: rgba(0, 255, 120, 0.25); border-right-color: rgba(0, 255, 120, 0.25); border-top-color: rgba(0, 255, 120, 0.25); border-bottom-color: rgba(0, 255, 120, 0.25); border-left-width: 1px; border-right-width: 1px; border-top-width: 1px; border-bottom-width: 1px;">
         <ui:Label text="Debug" display-tooltip-when-elided="true" style="color: rgba(0, 255, 120, 0.5);" />
-        <ui:Slider picking-mode="Ignore" label="Position" value="0" high-value="1" show-input-field="true" />
+        <ui:Slider picking-mode="Ignore" label="Position" value="0" high-value="1" show-input-field="true" name="debug-distance" />
+        <ui:Toggle label="Use Path Direction" name="debug-use-direction" />
     </ui:GroupBox>
 </ui:UXML>

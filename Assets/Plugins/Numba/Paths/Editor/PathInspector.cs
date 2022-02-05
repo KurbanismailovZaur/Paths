@@ -76,18 +76,20 @@ namespace Paths
 
         private Point GetPathPoint(int index, bool useGlobal = true)
         {
-            var method = _path.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .Single(m => m.Name == "GetRawPoint" && m.GetParameters().Length == 2);
+            var method = _path.GetType().GetMethods()
+                .Single(m => m.Name == "GetPointSimple" && m.GetParameters().Length == 2);
 
-            return (Point)method.Invoke(_path, new object[] { index, useGlobal });
+            var pointData = (PointData)method.Invoke(_path, new object[] { index, useGlobal });
+            return new Point(pointData.Position, pointData.Rotation);
         }
 
         private Point GetPathPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
-            var method = _path.GetType().GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
-                .Single(m => m.Name == "GetRawPoint" && m.GetParameters().Length == 4);
+            var method = _path.GetType().GetMethods()
+                .Single(m => m.Name == "GetPoint" && m.GetParameters().Length == 4);
 
-            return (Point)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
+            var pointData = (PointData)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
+            return new Point(pointData.Position, pointData.Rotation);
         }
 
         #region UXML
@@ -814,6 +816,18 @@ namespace Paths
                 callback();
 
             _pointsToAdd.Clear();
+
+            var useDirection = _inspector.Q<Toggle>("debug-use-direction").value;
+            var pointData = _path.GetPoint(_inspector.Q<Slider>("debug-distance").value);
+            var size = HandleUtility.GetHandleSize(pointData.Position);
+            var rotation = useDirection ? Quaternion.LookRotation(pointData.Direction) : pointData.Rotation;
+
+            Handles.matrix = Matrix4x4.TRS(pointData.Position, rotation, Vector3.one * size * 0.5f);
+            Handles.DrawWireCube(Vector3.zero, Vector3.one);
+
+            DrawLine(Vector3.zero, Vector3.right * 2f, Color.magenta);
+            DrawLine(Vector3.zero, Vector3.up * 2f, Color.green);
+            DrawLine(Vector3.zero, Vector3.forward * 2f, Color.cyan);
         }
 
         private void OnDisable() => DeselectPoint();
