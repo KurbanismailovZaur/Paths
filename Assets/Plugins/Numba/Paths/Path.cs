@@ -663,7 +663,7 @@ namespace Paths
                 return GetPointSimple(segment, useGlobal);
             else if (distance == length)
             {
-                if (segment != SegmentsCount - 1)
+                if (_looped && segment != SegmentsCount - 1 || !_looped && segment - 1 != SegmentsCount - 1)
                     return GetPointSimple(segment + 1, useGlobal);
                 else
                 {

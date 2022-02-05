@@ -554,7 +554,12 @@ namespace Paths
                 }
             }
 
-            GUI.DrawTexture(GetPointRectInSceneView(point.Position, 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+            var isCursorNearPoint = Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(point.Position)) <= 20f;
+
+            if (!isCursorNearPoint)
+                GUI.DrawTexture(GetPointRectInSceneView(point.Position, 12f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+            else
+                GUI.DrawTexture(GetPointRectInSceneView(point.Position, 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
 
             if (isControl)
                 GUI.DrawTexture(GetPointRectInSceneView(point.Position, 36f, true), _textures["dotted circle"]);
@@ -562,7 +567,7 @@ namespace Paths
             if (drawBlackDot)
                 GUI.DrawTexture(GetPointRectInSceneView(point.Position, 8f, true), _textures["black circle"]);
 
-            if (drawLabel)
+            if (drawLabel && isCursorNearPoint)
             {
                 var labelRect = GetPointRectInSceneView(point.Position, 24f, true);
                 if (number.ToString().Length != 2)
@@ -627,7 +632,7 @@ namespace Paths
         private void DrawAdjacentAddButton(Vector3 position, int insertTo)
         {
             Handles.BeginGUI();
-            GUI.DrawTexture(GetPointRectInSceneView(position, 4f), _textures["white circle"]);
+            GUI.DrawTexture(GetPointRectInSceneView(position, 6f), _textures["white circle"]);
             Handles.EndGUI();
 
             if (Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(position)) > 20f)
@@ -817,12 +822,17 @@ namespace Paths
 
             _pointsToAdd.Clear();
 
+            if (!_inspector.Q<Foldout>("debug-foldout").value)
+                return;
+
             var useDirection = _inspector.Q<Toggle>("debug-use-direction").value;
             var pointData = _path.GetPoint(_inspector.Q<Slider>("debug-distance").value);
             var size = HandleUtility.GetHandleSize(pointData.Position);
             var rotation = useDirection ? Quaternion.LookRotation(pointData.Direction) : pointData.Rotation;
 
             Handles.matrix = Matrix4x4.TRS(pointData.Position, rotation, Vector3.one * size * 0.5f);
+
+            Handles.color = new Color32(0, 255, 120, 255);
             Handles.DrawWireCube(Vector3.zero, Vector3.one);
 
             DrawLine(Vector3.zero, Vector3.right * 2f, Color.magenta);
