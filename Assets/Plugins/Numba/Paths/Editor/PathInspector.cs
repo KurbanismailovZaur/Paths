@@ -554,7 +554,7 @@ namespace Paths
                 }
             }
 
-            var isCursorNearPoint = Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(point.Position)) <= 20f;
+            var isCursorNearPoint = Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(point.Position, true)) <= 20f;
 
             if (!isCursorNearPoint)
                 GUI.DrawTexture(GetPointRectInSceneView(point.Position, 12f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);

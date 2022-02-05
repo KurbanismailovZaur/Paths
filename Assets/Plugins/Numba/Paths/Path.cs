@@ -166,14 +166,14 @@ namespace Paths
 
         #region Editor
 #if UNITY_EDITOR
-        [MenuItem("GameObject/3D Object/Path", priority = 19)]
-        private static void CreatePathFromMenu()
+        [MenuItem("GameObject/3D Object/Path/Line", priority = 19)]
+        private static void CreateLine()
         {
             var path = Create();
-            path.transform.SetParent(Selection.activeTransform);
+            path.transform.SetParent(Selection.activeTransform, false);
 
-            path.AddPoint(new Vector3(-0.5f, 0f, 0f));
-            path.AddPoint(new Vector3(0.5f, 0f, 0f));
+            path.AddPoint(new Vector3(-0.5f, 0f, 0f), false);
+            path.AddPoint(new Vector3(0.5f, 0f, 0f), false);
 
             Selection.activeObject = path;
         }
@@ -182,7 +182,7 @@ namespace Paths
 #endif
         #endregion
 
-        #region Optimize
+        #region Path optimizing
         public void OptimizeByAngle(float maxAngle = 8f)
         {
             bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out PointData pointData, out Vector3 vector, out float angle)
@@ -314,7 +314,6 @@ namespace Paths
         }
         #endregion
 
-        #region Transforms
         private PointData TransformPointToWorldSpace(PointData pointData)
         {
             pointData.Position = transform.TransformPoint(pointData.Position);
@@ -323,8 +322,8 @@ namespace Paths
 
             return pointData;
         }
-        #endregion
 
+        #region Segments operations
         private void SetNewSegmentsCalculator() => _segmentCalculatorIndex = Mathf.Min(_segmentsLengths.Count, 3);
 
         private SegmentLengthCalculator GetCurrentSegmentCalculator() => _segmentCalculators[_segmentCalculatorIndex];
@@ -383,6 +382,30 @@ namespace Paths
             return _segmentsLengths[segment];
         }
 
+        private Vector3 GetSegmentStartDirection(int segment)
+        {
+            var p0 = _points[WrapIndex(segment - 1)];
+            var p1 = _points[WrapIndex(segment)];
+            var p2 = _points[WrapIndex(segment + 1)];
+            var p3 = _points[WrapIndex(segment + 2)];
+
+            var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
+            return (newPoint - p1.Position).normalized;
+        }
+
+        private Vector3 GetSegmentEndDirection(int segment)
+        {
+            var p0 = _points[WrapIndex(segment + 2)];
+            var p1 = _points[WrapIndex(segment + 1)];
+            var p2 = _points[WrapIndex(segment)];
+            var p3 = _points[WrapIndex(segment - 1)];
+
+            var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
+            return (p1.Position - newPoint).normalized;
+        }
+        #endregion
+
+        #region Points operations
         public void AddPoint(Vector3 position, bool useGlobal = true) => AddPoint(new Point(position, Quaternion.identity), useGlobal);
 
         public void AddPoint(Point point, bool useGlobal = true)
@@ -518,6 +541,7 @@ namespace Paths
 
             Length = 0f;
         }
+        #endregion
 
         public void SetPoint(int index, Vector3 position, bool useGlobal = true)
         {
@@ -549,28 +573,6 @@ namespace Paths
             _points[index] = point;
 
             RecalculateSegmentsAfterChanging(index);
-        }
-
-        private Vector3 GetSegmentStartDirection(int segment)
-        {
-            var p0 = _points[WrapIndex(segment - 1)];
-            var p1 = _points[WrapIndex(segment)];
-            var p2 = _points[WrapIndex(segment + 1)];
-            var p3 = _points[WrapIndex(segment + 2)];
-
-            var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
-            return (newPoint - p1.Position).normalized;
-        }
-
-        private Vector3 GetSegmentEndDirection(int segment)
-        {
-            var p0 = _points[WrapIndex(segment + 2)];
-            var p1 = _points[WrapIndex(segment + 1)];
-            var p2 = _points[WrapIndex(segment)];
-            var p3 = _points[WrapIndex(segment - 1)];
-
-            var newPoint = CatmullRomSpline.CalculatePoint(_step, p0.Position, p1.Position, p2.Position, p3.Position);
-            return (p1.Position - newPoint).normalized;
         }
 
         public PointData GetPointSimple(int index, bool useGlobal = true)
