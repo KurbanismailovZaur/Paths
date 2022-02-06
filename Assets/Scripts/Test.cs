@@ -10,12 +10,12 @@ public class Test : MonoBehaviour
     [SerializeField]
     private Path _path;
 
-    [SerializeField]
-    [Range(0f, 1f)]
-    private float _distance;
-
     private void Update()
     {
-        Debug.Log(Vector3.right == Vector3.up);
+        var t = Mathf.PingPong(Time.time, 1f);
+        var posData = _path.GetPoint(t);
+
+        transform.position = posData.Position;
+        transform.rotation = Quaternion.LookRotation(posData.Direction);
     }
 }

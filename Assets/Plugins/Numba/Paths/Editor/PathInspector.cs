@@ -79,8 +79,7 @@ namespace Paths
             var method = _path.GetType().GetMethods()
                 .Single(m => m.Name == "GetPointSimple" && m.GetParameters().Length == 2);
 
-            var pointData = (PointData)method.Invoke(_path, new object[] { index, useGlobal });
-            return new Point(pointData.Position, pointData.Rotation);
+            return (PointData)method.Invoke(_path, new object[] { index, useGlobal });
         }
 
         private Point GetPathPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
@@ -88,8 +87,7 @@ namespace Paths
             var method = _path.GetType().GetMethods()
                 .Single(m => m.Name == "GetPoint" && m.GetParameters().Length == 4);
 
-            var pointData = (PointData)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
-            return new Point(pointData.Position, pointData.Rotation);
+            return (PointData)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
         }
 
         #region UXML

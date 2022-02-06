@@ -20,5 +20,7 @@ namespace Paths
             Rotation = rotation;
             Direction = direction;
         }
+
+        public static implicit operator Point(PointData pointData) => new Point(pointData.Position, pointData.Rotation);
     }
 }

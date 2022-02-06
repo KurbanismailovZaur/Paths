@@ -128,7 +128,14 @@ namespace Paths
             }
         }
 
-        public float Length { get; private set; }
+        [SerializeField]
+        private float _length;
+
+        public float Length
+        {
+            get => _length;
+            private set => _length = value;
+        }
         #endregion
 
         // Used by serialization system.
@@ -162,6 +169,123 @@ namespace Paths
 
             return path;
         }
+
+        public static Path CreatePolygon(Vector3 pivotPosition, int sideCount, float radius) => CreatePolygon(pivotPosition, Vector3.up, sideCount, radius);
+
+        public static Path CreatePolygon(Vector3 pivotPosition, Vector3 normal, int sideCount, float radius)
+        {
+            if (sideCount < 3)
+                throw new ArgumentException($"Side count can't be less that 3.", nameof(sideCount));
+
+            if (radius <= 0f)
+                throw new ArgumentException($"Radius must greater than 0.", nameof(radius));
+
+            var path = Create(pivotPosition);
+            normal.Normalize();
+
+            var normalRotation = Quaternion.LookRotation(normal, normal == Vector3.up ? Vector3.forward : Vector3.up);
+            var deltaAngle = 360f / sideCount;
+
+            for (int i = 0; i < sideCount; i++)
+            {
+                var angle = deltaAngle * i;
+                var vector = normalRotation * new Vector3(0f, radius, 0f);
+                vector = Quaternion.AngleAxis(angle, normal) * vector;
+
+                path.AddPoint(vector, false);
+            }
+
+            return path;
+        }
+
+        public static Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
+
+        public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
+        {
+            if (coils < 1)
+                throw new ArgumentException("Coils can't be less than 0.", nameof(coils));
+
+            if (Mathf.Approximately(step, 0f) || step < 0f)
+                throw new ArgumentException("Step can't be equal or less than 0.", nameof(step));
+
+            if (pointsCountPerCoil < 3)
+                throw new ArgumentException("Points coint per coil cant be less than 3.", nameof(pointsCountPerCoil));
+
+            var path = Create(pivotPosition);
+            normal.Normalize();
+
+            var normalRotation = Quaternion.LookRotation(normal, normal == Vector3.up ? Vector3.forward : Vector3.up);
+
+            var deltaAngle = 360f / pointsCountPerCoil;
+            var angle = -deltaAngle;
+            offsetAngle *= -1f;
+
+            var ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
+
+            for (int i = 0; i < coils; i++)
+            {
+                for (int j = 0; j < pointsCountPerCoil; j++)
+                {
+                    angle += deltaAngle;
+                    ray.direction = Quaternion.AngleAxis(deltaAngle, normal) * ray.direction;
+
+                    var distance = (step / (2f * Mathf.PI)) * (angle * Mathf.Deg2Rad);
+                    path.AddPoint(ray.GetPoint(distance), false);
+                }
+            }
+
+            ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
+            path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
+
+            return path;
+        }
+
+        public static Path CreateSpiral3D(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral3D(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
+
+        public static Path CreateSpiral3D(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
+        {
+            if (coils < 1)
+                throw new ArgumentException("Coils can't be less than 0.", nameof(coils));
+
+            if (Mathf.Approximately(step, 0f) || step < 0f)
+                throw new ArgumentException("Step can't be equal or less than 0.", nameof(step));
+
+            if (pointsCountPerCoil < 3)
+                throw new ArgumentException("Points coint per coil cant be less than 3.", nameof(pointsCountPerCoil));
+
+            var path = Create(pivotPosition);
+            normal.Normalize();
+
+            var normalRotation = Quaternion.LookRotation(normal, normal == Vector3.up ? Vector3.forward : Vector3.up);
+
+            var deltaAngle = 360f / pointsCountPerCoil;
+            var angle = -deltaAngle;
+            offsetAngle *= -1f;
+            var prevPoint = Vector3.zero;
+
+            var ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
+
+            for (int i = 0; i < coils; i++)
+            {
+                for (int j = 0; j < pointsCountPerCoil; j++)
+                {
+                    angle += deltaAngle;
+                    ray.direction = Quaternion.AngleAxis(deltaAngle, normal) * ray.direction;
+
+                    var distance = (step / (2f * Mathf.PI)) * (angle * Mathf.Deg2Rad);
+                    var point = ray.GetPoint(distance);
+                    path.AddPoint(point + normal * Vector3.Distance(point, prevPoint), false);
+                    prevPoint = point;
+                }
+            }
+
+            ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
+            path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
+            var pos = path.GetPointSimple(0, false).Position;
+            path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointSimple(1, false).Position));
+
+            return path;
+        }
         #endregion
 
         #region Editor
@@ -178,9 +302,53 @@ namespace Paths
             Selection.activeObject = path;
         }
 
-        private int WrapIndex(int index) => (((index - 0) % (_points.Count - 0)) + (_points.Count - 0)) % (_points.Count - 0) + 0;
+        private static Path CreatePolygon(int sideCount)
+        {
+            var path = CreatePolygon(Vector3.zero, sideCount, 1f);
+            path.transform.SetParent(Selection.activeTransform, false);
+            path.Looped = true;
+
+            Selection.activeObject = path;
+            return path;
+        }
+
+        [MenuItem("GameObject/3D Object/Path/Triangle", priority = 19)]
+        private static void CreateTriangle() => CreatePolygon(3);
+
+        [MenuItem("GameObject/3D Object/Path/Rhombus", priority = 19)]
+        private static void CreateRhombus() => CreatePolygon(4);
+
+        [MenuItem("GameObject/3D Object/Path/Pentagon", priority = 19)]
+        private static void CreatePentagon() => CreatePolygon(5);
+
+        [MenuItem("GameObject/3D Object/Path/Hexagon", priority = 19)]
+        private static void CreateHexagon() => CreatePolygon(6);
+
+        [MenuItem("GameObject/3D Object/Path/Octagon", priority = 19)]
+        private static void CreateOctagon() => CreatePolygon(8);
+
+        [MenuItem("GameObject/3D Object/Path/Circle", priority = 19)]
+        private static void CreateCircle() => CreatePolygon(12).Resolution = 2;
+
+        [MenuItem("GameObject/3D Object/Path/Spiral", priority = 19)]
+        private static void CreateSpiral()
+        {
+            var path = CreateSpiral(Vector3.zero, 0f, 3, 0.3333333f, 8);
+            path.transform.SetParent(Selection.activeTransform, false);
+            Selection.activeObject = path;
+        }
+
+        [MenuItem("GameObject/3D Object/Path/Spiral3D", priority = 19)]
+        private static void CreateSpiral3D()
+        {
+            var path = CreateSpiral3D(Vector3.zero, 0f, 3, 0.3333333f, 8);
+            path.transform.SetParent(Selection.activeTransform, false);
+            Selection.activeObject = path;
+        }
 #endif
         #endregion
+
+        private int WrapIndex(int index) => (((index - 0) % (_points.Count - 0)) + (_points.Count - 0)) % (_points.Count - 0) + 0;
 
         #region Path optimizing
         public void OptimizeByAngle(float maxAngle = 8f)
@@ -318,7 +486,7 @@ namespace Paths
         {
             pointData.Position = transform.TransformPoint(pointData.Position);
             pointData.Rotation = transform.rotation * pointData.Rotation;
-            pointData.Direction = transform.TransformDirection(pointData.Direction);    
+            pointData.Direction = transform.TransformDirection(pointData.Direction);
 
             return pointData;
         }
@@ -582,7 +750,7 @@ namespace Paths
             var pointData = new PointData(point, direction);
 
             if (useGlobal)
-                 pointData = TransformPointToWorldSpace(pointData);
+                pointData = TransformPointToWorldSpace(pointData);
 
             return pointData;
         }
@@ -666,14 +834,14 @@ namespace Paths
 
             if (Mathf.Approximately(distance, 0f))
                 return GetPointSimple(segment, useGlobal);
-            else if (Mathf.Approximately(distance , length))
+            else if (Mathf.Approximately(distance, length))
             {
                 if (_looped && segment != SegmentsCount - 1 || !_looped && segment - 1 != SegmentsCount - 1)
                     return GetPointSimple(segment + 1, useGlobal);
                 else
                 {
                     direction = GetSegmentEndDirection(segment);
-                    
+
                     if (useGlobal)
                         pointData = TransformPointToWorldSpace(new PointData(_points[WrapIndex(segment + 1)], direction));
 
