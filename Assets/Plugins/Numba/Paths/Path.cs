@@ -821,13 +821,30 @@ namespace Paths
 
             PointData pointData = new();
 
+            Vector3 position, direction;
+            Quaternion rotation;
+
             if (_points.Count == 2)
             {
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
-                
-                pointData = new PointData(Vector3.Lerp(_points[from].Position, _points[to].Position, normalizedDistance),
-                    Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance),
-                    (_points[to].Position - _points[from].Position).normalized);
+
+                if (_points[0].Position == _points[1].Position)
+                {
+                    position = _points[0].Position;
+                    direction = Vector3.zero; 
+                }
+                else
+                {
+                    position = Vector3.Lerp(_points[from].Position, _points[to].Position, normalizedDistance);
+                    direction = (_points[to].Position - _points[from].Position).normalized;
+                }
+
+                if (_points[0].Rotation == _points[1].Rotation)
+                    rotation = _points[0].Rotation;
+                else
+                    rotation = Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance);
+
+                pointData = new PointData(position, rotation, direction);
                 
                 if (useGlobal)
                     pointData = new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
@@ -841,7 +858,6 @@ namespace Paths
             // For 3 and more points..
 
             Point p0, p1, p2, p3;
-            Vector3 direction;
 
             if (Mathf.Approximately(distance, 0f))
                 return GetPointSimple(segment, useGlobal);
@@ -870,7 +886,6 @@ namespace Paths
             p2 = _points[WrapIndex(segment + 1)];
             p3 = _points[WrapIndex(segment + 2)];
 
-            Vector3 position;
             float currentLength;
 
             while (t < 1f)

@@ -843,13 +843,13 @@ namespace Paths
 
             _pointsToAdd.Clear();
 
-            if (!_inspector.Q<Foldout>("debug-foldout").value)
+            if (!_inspector.Q<Foldout>("debug-foldout").value || _path.PointsCount < 2)
                 return;
 
             var useDirection = _inspector.Q<Toggle>("debug-use-direction").value;
             var pointData = _path.GetPoint(_inspector.Q<Slider>("debug-distance").value);
             var size = HandleUtility.GetHandleSize(pointData.Position);
-            var rotation = useDirection ? Quaternion.LookRotation(pointData.Direction) : pointData.Rotation;
+            var rotation = useDirection ? Quaternion.LookRotation(pointData.Direction != Vector3.zero ? pointData.Direction : Vector3.forward) : pointData.Rotation;
 
             Handles.matrix = Matrix4x4.TRS(pointData.Position, rotation, Vector3.one * size * 0.5f);
 
