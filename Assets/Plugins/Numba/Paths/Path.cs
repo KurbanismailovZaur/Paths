@@ -294,56 +294,67 @@ namespace Paths
         private static void CreateLine()
         {
             var path = Create();
+            path.name = "Path (Line)";
             path.transform.SetParent(Selection.activeTransform, false);
 
             path.AddPoint(new Vector3(-0.5f, 0f, 0f), false);
             path.AddPoint(new Vector3(0.5f, 0f, 0f), false);
 
             Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
         }
 
-        private static Path CreatePolygon(int sideCount)
+        private static Path CreatePolygon(int sideCount, string figureName)
         {
             var path = CreatePolygon(Vector3.zero, sideCount, 1f);
+            path.name = $"Path ({figureName})";
             path.transform.SetParent(Selection.activeTransform, false);
             path.Looped = true;
 
             Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
+
             return path;
         }
 
         [MenuItem("GameObject/3D Object/Path/Triangle", priority = 19)]
-        private static void CreateTriangle() => CreatePolygon(3);
+        private static void CreateTriangle() => CreatePolygon(3, "Triangle");
 
         [MenuItem("GameObject/3D Object/Path/Rhombus", priority = 19)]
-        private static void CreateRhombus() => CreatePolygon(4);
+        private static void CreateRhombus() => CreatePolygon(4, "Rhombus");
 
         [MenuItem("GameObject/3D Object/Path/Pentagon", priority = 19)]
-        private static void CreatePentagon() => CreatePolygon(5);
+        private static void CreatePentagon() => CreatePolygon(5, "Pentagon");
 
         [MenuItem("GameObject/3D Object/Path/Hexagon", priority = 19)]
-        private static void CreateHexagon() => CreatePolygon(6);
+        private static void CreateHexagon() => CreatePolygon(6, "Hexagon");
 
         [MenuItem("GameObject/3D Object/Path/Octagon", priority = 19)]
-        private static void CreateOctagon() => CreatePolygon(8);
+        private static void CreateOctagon() => CreatePolygon(8, "Octagon");
 
         [MenuItem("GameObject/3D Object/Path/Circle", priority = 19)]
-        private static void CreateCircle() => CreatePolygon(12).Resolution = 2;
+        private static void CreateCircle() => CreatePolygon(12, "Circle").Resolution = 2;
 
         [MenuItem("GameObject/3D Object/Path/Spiral", priority = 19)]
         private static void CreateSpiral()
         {
             var path = CreateSpiral(Vector3.zero, 0f, 3, 0.3333333f, 8);
+            path.name = "Path (Spiral)";
             path.transform.SetParent(Selection.activeTransform, false);
+
             Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
         }
 
         [MenuItem("GameObject/3D Object/Path/Spiral3D", priority = 19)]
         private static void CreateSpiral3D()
         {
             var path = CreateSpiral3D(Vector3.zero, 0f, 3, 0.3333333f, 8);
+            path.name = "Path (Spiral3D)";
             path.transform.SetParent(Selection.activeTransform, false);
+
             Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
         }
 #endif
         #endregion
@@ -484,11 +495,7 @@ namespace Paths
 
         private PointData TransformPointToWorldSpace(PointData pointData)
         {
-            pointData.Position = transform.TransformPoint(pointData.Position);
-            pointData.Rotation = transform.rotation * pointData.Rotation;
-            pointData.Direction = transform.TransformDirection(pointData.Direction);
-
-            return pointData;
+            return new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
         }
 
         #region Segments operations
@@ -716,7 +723,9 @@ namespace Paths
             if (useGlobal)
                 position = transform.InverseTransformPoint(position);
 
-            _points[index] = new Point(position, _points[index].Rotation);
+            var point = _points[index];
+            point.Position = position;
+            _points[index] = point;
 
             RecalculateSegmentsAfterChanging(index);
         }
@@ -726,8 +735,10 @@ namespace Paths
             if (useGlobal)
                 rotation = Quaternion.Inverse(transform.rotation) * rotation;
 
-            _points[index] = new Point(_points[index].Position, rotation);
-
+            var point = _points[index];
+            point.Rotation = rotation;
+            _points[index] = point;
+            
             RecalculateSegmentsAfterChanging(index);
         }
 
@@ -736,7 +747,10 @@ namespace Paths
         public void SetPoint(int index, Point point, bool useGlobal = true)
         {
             if (useGlobal)
+            {
                 point.Position = transform.InverseTransformPoint(point.Position);
+                point.Rotation = Quaternion.Inverse(transform.rotation) * point.Rotation;
+            }
 
             _points[index] = point;
 
@@ -810,16 +824,13 @@ namespace Paths
             if (_points.Count == 2)
             {
                 var (from, to) = segment == 0 ? (0, 1) : (1, 0);
-                pointData.Position = Vector3.Lerp(_points[from].Position, _points[to].Position, normalizedDistance);
-                pointData.Rotation = Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance);
-                pointData.Direction = (_points[to].Position - _points[from].Position).normalized;
-
+                
+                pointData = new PointData(Vector3.Lerp(_points[from].Position, _points[to].Position, normalizedDistance),
+                    Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance),
+                    (_points[to].Position - _points[from].Position).normalized);
+                
                 if (useGlobal)
-                {
-                    pointData.Position = transform.TransformPoint(pointData.Position);
-                    pointData.Rotation = transform.rotation * pointData.Rotation;
-                    pointData.Direction = transform.TransformDirection(pointData.Direction);
-                }
+                    pointData = new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
 
                 return pointData;
             }
@@ -869,9 +880,7 @@ namespace Paths
 
                 if (distance <= currentLength)
                 {
-                    pointData.Position = Vector3.Lerp(lastPosition, position, distance / currentLength);
-                    pointData.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
-                    pointData.Direction = (position - lastPosition).normalized;
+                    pointData = new PointData(Vector3.Lerp(lastPosition, position, distance / currentLength), Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance), (position - lastPosition).normalized);
 
                     if (useGlobal)
                         pointData = TransformPointToWorldSpace(pointData);
@@ -887,9 +896,7 @@ namespace Paths
             position = CatmullRomSpline.CalculatePoint(1f, p0.Position, p1.Position, p2.Position, p3.Position);
             currentLength = Vector3.Distance(lastPosition, position);
 
-            pointData.Position = Vector3.Lerp(lastPosition, position, distance / currentLength);
-            pointData.Rotation = Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance);
-            pointData.Direction = (position - lastPosition).normalized;
+            pointData = new PointData(Vector3.Lerp(lastPosition, position, distance / currentLength), Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance), (position - lastPosition).normalized);
 
             if (useGlobal)
                 pointData = TransformPointToWorldSpace(pointData);

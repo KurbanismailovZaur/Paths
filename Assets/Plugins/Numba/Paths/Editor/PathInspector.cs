@@ -61,24 +61,24 @@ namespace Paths
 
                     var point = _inspector.GetPathPoint(number, false);
 
-                    posField.value = point.Position;
-                    rotField.value = point.Rotation.eulerAngles;
+                    posField.SetValueWithoutNotify(point.Position);
+                    rotField.SetValueWithoutNotify(_inspector.GetPointEuler(point));
                 }
 
                 if (_inspector._selectedPointIndex != -1)
                 {
                     var point = _inspector.GetPathPoint(_inspector._selectedPointIndex, false);
-                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").value = point.Position;
-                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-rotation").value = point.Rotation.eulerAngles;
+                    SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-position").SetValueWithoutNotify(point.Position);
+
+                    var rotField = SceneView.lastActiveSceneView.rootVisualElement.Q<Vector3Field>("point-rotation");
+                    rotField.SetValueWithoutNotify(_inspector.GetPointEuler(point));
                 }
             }
         }
 
         private Point GetPathPoint(int index, bool useGlobal = true)
         {
-            var method = _path.GetType().GetMethods()
-                .Single(m => m.Name == "GetPointSimple" && m.GetParameters().Length == 2);
-
+            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPointSimple" && m.GetParameters().Length == 2);
             return (PointData)method.Invoke(_path, new object[] { index, useGlobal });
         }
 
@@ -174,9 +174,31 @@ namespace Paths
             _textures.Add("red rect", Resources.Load<Texture>("Numba/Paths/Textures/RedRect"));
         }
 
+        private int GetNewUndoGroupWithName(string name)
+        {
+            Undo.SetCurrentGroupName(name);
+            return Undo.GetCurrentGroup();
+        }
+
+        private void RecordChangeToUndo(string name)
+        {
+            Undo.RecordObject(_path, name);
+            Undo.RegisterCompleteObjectUndo(this, "Path Inspector Changed");
+        }
+
+        private int GroupAndRecordChangeToUndo(string name)
+        {
+            var group = GetNewUndoGroupWithName(name);
+            RecordChangeToUndo("Path Changed");
+
+            return group;
+        }
+
         #region Add and remove
         private void InsertElement(int index, Point point)
         {
+            var group = GroupAndRecordChangeToUndo($"Path Point Inserted (Index: {index})");
+
             _path.InsertPoint(index, point, false);
 
             _listView.Rebuild();
@@ -185,6 +207,8 @@ namespace Paths
             SelectPoint(index);
 
             UpdateState();
+
+            Undo.CollapseUndoOperations(group);
         }
 
         private void InsertElement(int index)
@@ -238,19 +262,21 @@ namespace Paths
             positionField.value = point.Position;
 
             var rotationField = _toolsBox.Q<Vector3Field>("point-rotation");
-            rotationField.value = point.Rotation.eulerAngles;
+            rotationField.SetValueWithoutNotify(GetPointEuler(point));
 
             if (needCreateToolsBox)
             {
                 positionField.RegisterValueChangedCallback(e =>
                 {
+                    var point = GetPathPoint(_selectedPointIndex, false);
                     point.Position = e.newValue;
                     _path.SetPoint(_selectedPointIndex, point, false);
                 });
 
                 rotationField.RegisterValueChangedCallback(e =>
                 {
-                    point.Rotation = Quaternion.Euler(e.newValue);
+                    var point = GetPathPoint(_selectedPointIndex, false);
+                    SetPointEuler(ref point, e.newValue);
                     _path.SetPoint(_selectedPointIndex, point, false);
                 });
             }
@@ -313,17 +339,11 @@ namespace Paths
         }
         #endregion
 
-        #region Updates
-        private void UpdatePointsAddGroup()
+        private void UpdateState()
         {
-            if (_path.PointsCount == 0)
-                _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.Flex);
-            else
-                _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
-        }
+            _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(_path.PointsCount == 0 ? DisplayStyle.Flex : DisplayStyle.None);
+            SceneView.lastActiveSceneView.Repaint();
 
-        private void UpdateHelp()
-        {
             if (_path.PointsCount == 0)
                 _helpLabel.text = @"There is no points in path. Add points by pressing '+' button above. If you don't see the button, just unfold 'Points' field.";
             else if (_path.PointsCount == 1)
@@ -336,13 +356,18 @@ namespace Paths
                 _helpLabel.text = @"A path that consists of 4 or more points represents a curve, the first and last points of which are controlling points, and adjacent points are both controlling and end points of the curve.";
         }
 
-        private void UpdateState()
+        private Vector3 GetPointEuler(Point point)
         {
-            UpdatePointsAddGroup();
-            SceneView.lastActiveSceneView.Repaint();
-            UpdateHelp();
+            var euler = (Vector3)typeof(Point).GetField("_eulers", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(point);
+            return euler;
         }
-        #endregion
+
+        private void SetPointEuler(ref Point point, Vector3 eulers)
+        {
+            object boxedPoint = point;
+            typeof(Point).GetProperty("Eulers", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(boxedPoint, eulers);
+            point = (Point)boxedPoint;
+        }
 
         public override VisualElement CreateInspectorGUI()
         {
@@ -359,11 +384,7 @@ namespace Paths
 
             _selectedPointIndex = -1;
 
-            _pointsAddGroupBox.Q<Button>().clicked += () =>
-            {
-                InsertElement(0, new Point(Vector3.zero, Quaternion.identity));
-                _pointsAddGroupBox.style.display = new StyleEnum<DisplayStyle>(DisplayStyle.None);
-            };
+            _pointsAddGroupBox.Q<Button>().clicked += () => InsertElement(0, new Point(Vector3.zero, Quaternion.identity));
 
             _listView.binding = new PointsBinding(this, _listView);
 
@@ -378,7 +399,7 @@ namespace Paths
                 return groupBox;
             };
 
-            void Bind(VisualElement element, int index)
+            _listView.bindItem = (VisualElement element, int index) =>
             {
                 if (index < 0)
                     return;
@@ -396,10 +417,13 @@ namespace Paths
 
                 _positionFieldValueChangedCallbacks.Add(element, e =>
                 {
+                    Undo.RecordObject(_path, $"Path Point {index} Position Changed");
+
                     var point = GetPathPoint(index, false);
                     point.Position = e.newValue;
 
-                    _path.SetPoint(index, point, false);
+                    _path.SetPoint(index, point.Position, false);
+
                     SceneView.lastActiveSceneView.Repaint();
                 });
 
@@ -408,12 +432,15 @@ namespace Paths
 
                 #region Point rotation
                 var rotField = element.Q<Vector3Field>("point-rotation");
-                rotField.value = point.Rotation.eulerAngles;
+                var euler = GetPointEuler(point);
+                rotField.SetValueWithoutNotify(euler);
 
                 _rotationFieldValueChangedCallbacks.Add(element, e =>
                 {
+                    Undo.RecordObject(_path, $"Path Point {index} Rotation Changed");
+
                     var point = GetPathPoint(index, false);
-                    point.Rotation = Quaternion.Euler(e.newValue);
+                    SetPointEuler(ref point, e.newValue);
 
                     _path.SetPoint(index, point, false);
                     SceneView.lastActiveSceneView.Repaint();
@@ -431,9 +458,8 @@ namespace Paths
                 _removeButtonCallbacks.Add(element, () => RemoveElement(index));
                 removeButton.clicked += _removeButtonCallbacks[element];
                 #endregion
-            }
-
-            void Unbind(VisualElement element, int index)
+            };
+            _listView.unbindItem = (VisualElement element, int index) =>
             {
                 if (index < 0)
                     return;
@@ -454,9 +480,6 @@ namespace Paths
                 removeButton.clicked -= _removeButtonCallbacks[element];
                 _removeButtonCallbacks.Remove(element);
             };
-
-            _listView.bindItem = Bind;
-            _listView.unbindItem += Unbind;
 
             _listView.itemIndexChanged += (from, to) => SelectPointInListView(to);
 
@@ -617,11 +640,11 @@ namespace Paths
                 {
                     var rot = TransformRotation(point.Rotation);
                     var newRot = Handles.RotationHandle(rot, TransformPoint(point.Position));
-                    var position = Vector3.Distance(rot.eulerAngles, newRot.eulerAngles);
+                    var angle = Quaternion.Angle(rot, newRot);
 
-                    if (Mathf.Approximately(position, 0f))
+                    if (Mathf.Approximately(angle, 0f))
                         return;
-
+                    
                     _path.SetPoint(number, newRot, true);
                 }
             }
