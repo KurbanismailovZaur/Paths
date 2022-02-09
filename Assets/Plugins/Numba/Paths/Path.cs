@@ -290,6 +290,17 @@ namespace Paths
 
         #region Editor
 #if UNITY_EDITOR
+        [MenuItem("GameObject/3D Object/Path/Empty", priority = 19)]
+        private static void CreateEmpty()
+        {
+            var path = Create();
+            path.name = "Path";
+            path.transform.SetParent(Selection.activeTransform, false);
+
+            Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
+        }
+
         [MenuItem("GameObject/3D Object/Path/Line", priority = 19)]
         private static void CreateLine()
         {
@@ -301,7 +312,7 @@ namespace Paths
             path.AddPoint(new Vector3(0.5f, 0f, 0f), false);
 
             Selection.activeObject = path;
-            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path (Line)");
         }
 
         private static Path CreatePolygon(int sideCount, string figureName)
@@ -312,7 +323,7 @@ namespace Paths
             path.Looped = true;
 
             Selection.activeObject = path;
-            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
+            Undo.RegisterCreatedObjectUndo(path.gameObject, $"Create Path ({figureName})");
 
             return path;
         }
