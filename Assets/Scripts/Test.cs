@@ -10,9 +10,13 @@ public class Test : MonoBehaviour
     [SerializeField]
     private Path _path;
 
-    private void Start()
+    private void Update()
     {
-        print($"{Quaternion.Euler(new Vector3(9.000001f, 0f, 0f)).eulerAngles.x:0.0000000}"); 
+        var t = Mathf.PingPong(Time.time * 0.25f, 1f);
+        var data = _path.GetPoint(t);
+
+        transform.position = data.Position;
+        transform.rotation = Quaternion.LookRotation(data.Direction);
     }
 
     //private void Update()

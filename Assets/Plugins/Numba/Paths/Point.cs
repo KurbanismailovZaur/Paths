@@ -26,7 +26,9 @@ namespace Paths
             set
             {
                 _rotation = value;
+#if UNITY_EDITOR
                 _eulers = _rotation.eulerAngles;
+#endif
             }
         }
 

@@ -186,7 +186,7 @@ namespace Paths
             _listView.Rebuild();
 
             SelectPointInListView(index);
-            SelectPoint(index);
+            //SelectPoint(index);
 
             UpdateState();
             Undo.RegisterCompleteObjectUndo(this, "Path Inspector Changed");
@@ -248,6 +248,11 @@ namespace Paths
                     positionField.Blur();
                     rotationField.Blur();
                 });
+            }
+            else
+            {
+                positionField = _toolsBox.Q<Vector3Field>("point-position");
+                rotationField = _toolsBox.Q<Vector3Field>("point-rotation");
             }
 
             _selectedPointIndex = index;
@@ -397,6 +402,7 @@ namespace Paths
         {
             if (_inspector != null)
                 return _inspector;
+
 
             FindAllMainElements();
             LoadResources();
