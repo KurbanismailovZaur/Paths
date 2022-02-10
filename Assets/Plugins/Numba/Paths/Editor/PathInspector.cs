@@ -174,30 +174,18 @@ namespace Paths
             _textures.Add("red rect", Resources.Load<Texture>("Numba/Paths/Textures/RedRect"));
         }
 
-        private int GetNewUndoGroupWithName(string name)
-        {
-            Undo.SetCurrentGroupName(name);
-            return Undo.GetCurrentGroup();
-        }
-
+        #region Undo operations
         private void RecordChangeToUndo(string name)
         {
+            Undo.RecordObject(this, "Path Inspector Changed");
             Undo.RecordObject(_path, name);
-            Undo.RegisterCompleteObjectUndo(this, "Path Inspector Changed");
         }
-
-        private int GroupAndRecordChangeToUndo(string name)
-        {
-            var group = GetNewUndoGroupWithName(name);
-            RecordChangeToUndo("Path Changed");
-
-            return group;
-        }
+        #endregion
 
         #region Add and remove
         private void InsertElement(int index, Point point)
         {
-            var group = GroupAndRecordChangeToUndo($"Path Point Inserted (Index: {index})");
+            RecordChangeToUndo($"Path Point Inserted (Index: {index})");
 
             _path.InsertPoint(index, point, false);
 
@@ -207,8 +195,6 @@ namespace Paths
             SelectPoint(index);
 
             UpdateState();
-
-            Undo.CollapseUndoOperations(group);
         }
 
         private void InsertElement(int index)
@@ -268,6 +254,8 @@ namespace Paths
             {
                 positionField.RegisterValueChangedCallback(e =>
                 {
+                    //Undo.RecordObject(_path, $"Path Point {index} Rotation Changed");
+
                     var point = GetPathPoint(_selectedPointIndex, false);
                     point.Position = e.newValue;
                     _path.SetPoint(_selectedPointIndex, point, false);
@@ -275,6 +263,8 @@ namespace Paths
 
                 rotationField.RegisterValueChangedCallback(e =>
                 {
+                    //Undo.RecordObject(_path, $"Path Point {index} Rotation Changed");
+
                     var point = GetPathPoint(_selectedPointIndex, false);
                     SetPointEuler(ref point, e.newValue);
                     _path.SetPoint(_selectedPointIndex, point, false);
@@ -417,17 +407,30 @@ namespace Paths
 
                 _positionFieldValueChangedCallbacks.Add(element, e =>
                 {
-                    Undo.RecordObject(_path, $"Path Point {index} Position Changed");
-
-                    var point = GetPathPoint(index, false);
-                    point.Position = e.newValue;
-
-                    _path.SetPoint(index, point.Position, false);
-
+                    _path.SetPoint(index, e.newValue, false);
                     SceneView.lastActiveSceneView.Repaint();
                 });
 
                 posField.RegisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
+                
+                var oldPos = Vector3.zero;
+
+                posField.RegisterCallback<FocusEvent>(e => oldPos = posField.value);
+                posField.RegisterCallback<BlurEvent>(e =>
+                {
+                    if (posField.value == oldPos)
+                        return;
+
+                    _path.SetPoint(index, oldPos, false);
+
+                    Undo.RecordObject(_path, $"Path Point {index} Position Changed To {posField.value}");
+                    _path.SetPoint(index, posField.value, false);
+                });
+
+                posField.RegisterCallback<PointerCaptureEvent>(e =>
+                {
+                    Debug.Log("Drag enter");
+                });
                 #endregion
 
                 #region Point rotation
@@ -437,8 +440,6 @@ namespace Paths
 
                 _rotationFieldValueChangedCallbacks.Add(element, e =>
                 {
-                    Undo.RecordObject(_path, $"Path Point {index} Rotation Changed");
-
                     var point = GetPathPoint(index, false);
                     SetPointEuler(ref point, e.newValue);
 
@@ -447,6 +448,27 @@ namespace Paths
                 });
 
                 rotField.RegisterValueChangedCallback(_rotationFieldValueChangedCallbacks[element]);
+
+                var oldRot = Vector3.zero;
+
+                rotField.RegisterCallback<FocusEvent>(e => oldRot = rotField.value);
+                rotField.RegisterCallback<BlurEvent>(e =>
+                {
+                    if (rotField.value == oldRot)
+                        return;
+
+                    var point = GetPathPoint(index, false);
+                    SetPointEuler(ref point, oldRot);
+
+                    _path.SetPoint(index, point, false);
+
+                    Undo.RecordObject(_path, $"Path Point {index} Rotation Changed To {rotField.value}");
+
+                    point = GetPathPoint(index, false);
+                    SetPointEuler(ref point, rotField.value);
+
+                    _path.SetPoint(index, point, false);
+                });
                 #endregion
 
                 #region Add and remove point
@@ -644,7 +666,7 @@ namespace Paths
 
                     if (Mathf.Approximately(angle, 0f))
                         return;
-                    
+
                     _path.SetPoint(number, newRot, true);
                 }
             }
@@ -810,6 +832,10 @@ namespace Paths
         private void OnSceneGUI()
         {
             if (_inspector == null)
+                return;
+
+            // Need for prevent errors in editor when undo operation performed.
+            if (_selectedPointIndex >= _path.PointsCount)
                 return;
 
             if (Event.current.isKey && Event.current.keyCode == KeyCode.F && Event.current.type == EventType.KeyDown && _selectedPointIndex != -1)
