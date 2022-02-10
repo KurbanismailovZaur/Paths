@@ -770,7 +770,7 @@ namespace Paths
 
         public PointData GetPointSimple(int index, bool useGlobal = true)
         {
-            var point = _points[index];
+            var point = _points[WrapIndex(index)];
             var direction = _points.Count == 1 ? Vector3.zero : GetSegmentStartDirection(index);
             var pointData = new PointData(point, direction);
 

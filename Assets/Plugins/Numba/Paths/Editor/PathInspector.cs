@@ -118,8 +118,10 @@ namespace Paths
 
         private Label _helpLabel;
 
+        [SerializeField]
         private int _selectedPointIndex;
 
+        [SerializeField]
         private bool _isFramed;
 
         private GroupBox _toolsBox;
@@ -174,27 +176,20 @@ namespace Paths
             _textures.Add("red rect", Resources.Load<Texture>("Numba/Paths/Textures/RedRect"));
         }
 
-        #region Undo operations
-        private void RecordChangeToUndo(string name)
-        {
-            Undo.RecordObject(this, "Path Inspector Changed");
-            Undo.RecordObject(_path, name);
-        }
-        #endregion
-
         #region Add and remove
         private void InsertElement(int index, Point point)
         {
-            RecordChangeToUndo($"Path Point Inserted (Index: {index})");
+            Undo.IncrementCurrentGroup();
+            Undo.RecordObject(_path, $"Path Point Inserted To Index: {index}");
 
             _path.InsertPoint(index, point, false);
-
             _listView.Rebuild();
 
             SelectPointInListView(index);
             SelectPoint(index);
 
             UpdateState();
+            Undo.RegisterCompleteObjectUndo(this, "Path Inspector Changed");
         }
 
         private void InsertElement(int index)
@@ -216,24 +211,43 @@ namespace Paths
 
         private void RemoveElement(int index)
         {
+            Undo.RecordObject(_path, $"Path Point {index} Removed");
+
             DeselectPoint();
 
             _path.RemovePointAt(index);
             _listView.Rebuild();
 
             UpdateState();
+            Undo.RegisterCompleteObjectUndo(this, "Path Inspector Changed");
         }
         #endregion
 
         #region Selecting
         private void SelectPoint(int index)
         {
+            Vector3Field positionField = null;
+            Vector3Field rotationField = null;
+
             var needCreateToolsBox = _selectedPointIndex == -1;
             if (needCreateToolsBox)
             {
                 var sceneViewElement = SceneView.lastActiveSceneView.rootVisualElement.Q("unity-scene-view-camera-rect");
                 _pathSceneViewUXML.CloneTree(sceneViewElement);
                 _toolsBox = sceneViewElement.Q<GroupBox>("paths-root");
+
+                positionField = _toolsBox.Q<Vector3Field>("point-position");
+                rotationField = _toolsBox.Q<Vector3Field>("point-rotation");
+
+                _toolsBox.focusable = true;
+                _toolsBox.RegisterCallback<KeyDownEvent>(e =>
+                {
+                    if (!e.ctrlKey || e.keyCode != KeyCode.Z)
+                        return;
+
+                    positionField.Blur();
+                    rotationField.Blur();
+                });
             }
 
             _selectedPointIndex = index;
@@ -244,30 +258,50 @@ namespace Paths
 
             var point = GetPathPoint(_selectedPointIndex, false);
 
-            var positionField = _toolsBox.Q<Vector3Field>("point-position");
-            positionField.value = point.Position;
-
-            var rotationField = _toolsBox.Q<Vector3Field>("point-rotation");
+            positionField.SetValueWithoutNotify(point.Position);
             rotationField.SetValueWithoutNotify(GetPointEuler(point));
 
             if (needCreateToolsBox)
             {
-                positionField.RegisterValueChangedCallback(e =>
-                {
-                    //Undo.RecordObject(_path, $"Path Point {index} Rotation Changed");
+                positionField.RegisterValueChangedCallback(e => _path.SetPoint(_selectedPointIndex, e.newValue, false));
 
-                    var point = GetPathPoint(_selectedPointIndex, false);
-                    point.Position = e.newValue;
-                    _path.SetPoint(_selectedPointIndex, point, false);
+                var oldPos = Vector3.zero;
+                positionField.RegisterCallback<FocusEvent>(e => oldPos = positionField.value);
+
+                positionField.RegisterCallback<BlurEvent>(e =>
+                {
+                    if (positionField.value == oldPos)
+                        return;
+
+                    _path.SetPoint(index, oldPos, false);
+
+                    Undo.RecordObject(_path, $"Path Point {index} Position Changed To {positionField.value}");
+                    _path.SetPoint(index, positionField.value, false);
                 });
 
                 rotationField.RegisterValueChangedCallback(e =>
                 {
-                    //Undo.RecordObject(_path, $"Path Point {index} Rotation Changed");
-
                     var point = GetPathPoint(_selectedPointIndex, false);
                     SetPointEuler(ref point, e.newValue);
                     _path.SetPoint(_selectedPointIndex, point, false);
+                });
+
+                var oldRot = Vector3.zero;
+                rotationField.RegisterCallback<FocusEvent>(e => oldRot = rotationField.value);
+
+                rotationField.RegisterCallback<BlurEvent>(e =>
+                {
+                    if (rotationField.value == oldRot)
+                        return;
+
+                    var point = GetPathPoint(_selectedPointIndex, false);
+                    SetPointEuler(ref point, oldRot);
+                    _path.SetPoint(index, point, false); ;
+
+                    Undo.RecordObject(_path, $"Path Point {index} Rotation Changed To {rotationField.value}");
+
+                    SetPointEuler(ref point, rotationField.value);
+                    _path.SetPoint(index, point, false);
                 });
             }
         }
@@ -367,8 +401,24 @@ namespace Paths
             FindAllMainElements();
             LoadResources();
 
-            _resolutionSlider.RegisterValueChangedCallback(e => _path.Resolution = e.newValue);
-            _loopedToggle.RegisterValueChangedCallback(e => _path.Looped = e.newValue);
+            _resolutionSlider.RegisterValueChangedCallback(e =>
+            {
+                if (e.previousValue == e.newValue)
+                    return;
+
+                Undo.RecordObject(_path, null);
+                _path.Resolution = e.newValue;
+                Undo.SetCurrentGroupName($"Path Resolution Changed To {e.newValue}");
+            });
+
+            _loopedToggle.RegisterValueChangedCallback(e =>
+            {
+                if (e.previousValue == e.newValue)
+                    return;
+
+                Undo.RecordObject(_path, $"Path Loop Changed To {e.newValue}");
+                _path.Looped = e.newValue;
+            });
 
             _inspector.Q<Button>("optimize-button").clicked += () => _path.Optimize();
 
@@ -407,12 +457,15 @@ namespace Paths
 
                 _positionFieldValueChangedCallbacks.Add(element, e =>
                 {
+                    if (e.previousValue == e.newValue)
+                        return;
+
                     _path.SetPoint(index, e.newValue, false);
                     SceneView.lastActiveSceneView.Repaint();
                 });
 
                 posField.RegisterValueChangedCallback(_positionFieldValueChangedCallbacks[element]);
-                
+
                 var oldPos = Vector3.zero;
 
                 posField.RegisterCallback<FocusEvent>(e => oldPos = posField.value);
@@ -426,11 +479,6 @@ namespace Paths
                     Undo.RecordObject(_path, $"Path Point {index} Position Changed To {posField.value}");
                     _path.SetPoint(index, posField.value, false);
                 });
-
-                posField.RegisterCallback<PointerCaptureEvent>(e =>
-                {
-                    Debug.Log("Drag enter");
-                });
                 #endregion
 
                 #region Point rotation
@@ -440,6 +488,9 @@ namespace Paths
 
                 _rotationFieldValueChangedCallbacks.Add(element, e =>
                 {
+                    if (e.previousValue == e.newValue)
+                        return;
+
                     var point = GetPathPoint(index, false);
                     SetPointEuler(ref point, e.newValue);
 
@@ -503,7 +554,21 @@ namespace Paths
                 _removeButtonCallbacks.Remove(element);
             };
 
-            _listView.itemIndexChanged += (from, to) => SelectPointInListView(to);
+            _listView.itemIndexChanged += (from, to) =>
+            {
+                var fromPoint = _path.GetPointSimple(from, false);
+                var toPoint = _path.GetPointSimple(to, false);
+
+                _path.SetPoint(from, toPoint, false);
+                _path.SetPoint(to, fromPoint, false);
+
+                Undo.RecordObject(_path, $"Path Points {from} And {to} Swaped");
+
+                _path.SetPoint(from, fromPoint, false);
+                _path.SetPoint(to, toPoint, false);
+
+                SelectPointInListView(to);
+            };
 
             _listView.onSelectedIndicesChange += indeces =>
             {
@@ -513,6 +578,15 @@ namespace Paths
                 SelectPoint(indeces.First());
                 SceneView.lastActiveSceneView.Repaint();
             };
+
+            _inspector.focusable = true;
+            _inspector.RegisterCallback<KeyDownEvent>(e =>
+            {
+                if (!e.ctrlKey || e.keyCode != KeyCode.Z)
+                    return;
+
+                _listView.Blur();
+            });
 
             UpdateState();
 
@@ -656,7 +730,9 @@ namespace Paths
                     if (Mathf.Approximately(distance, 0f))
                         return;
 
+                    Undo.RecordObject(_path, null);
                     _path.SetPoint(number, newPos, false);
+                    Undo.SetCurrentGroupName($"Path Point {number} Position Changed To {newPos}");
                 }
                 else if (Tools.current == Tool.Rotate)
                 {
@@ -667,7 +743,9 @@ namespace Paths
                     if (Mathf.Approximately(angle, 0f))
                         return;
 
+                    Undo.RecordObject(_path, null);
                     _path.SetPoint(number, newRot, true);
+                    Undo.SetCurrentGroupName($"Path Point {number} Rotation Changed To {newRot}");
                 }
             }
         }
@@ -689,7 +767,15 @@ namespace Paths
             GUI.Label(labelRect, "+", _skin.customStyles[5]);
 
             if (GUI.Button(GetPointRectInSceneView(position, 24f), "", _skin.button))
-                _pointsToAdd.Add(() => InsertElement(insertTo, new Point(_path.transform.InverseTransformPoint(position), Quaternion.Lerp(GetPathPoint(insertTo - 1).Rotation, GetPathPoint(insertTo).Rotation, 0.5f))));
+            {
+                _pointsToAdd.Add(() =>
+                {
+                    var fromRot = GetPathPoint(insertTo - 1).Rotation;
+                    var toRot = GetPathPoint(insertTo).Rotation;
+                    var point = new Point(_path.transform.InverseTransformPoint(position), Quaternion.Lerp(fromRot, toRot, 0.5f));
+                    InsertElement(insertTo, point);
+                });
+            }
 
             Handles.EndGUI();
 
