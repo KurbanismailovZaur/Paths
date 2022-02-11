@@ -14,67 +14,6 @@ namespace Paths
     /// </summary>
     public class Path : MonoBehaviour
     {
-        #region Segments length calculators
-        private abstract class SegmentLengthCalculator
-        {
-            protected Path _path;
-
-            public SegmentLengthCalculator(Path path) => _path = path;
-
-            public abstract void CalculateLength(int segment);
-        }
-
-        private class ZeroSegmentsCalculator : SegmentLengthCalculator
-        {
-            public ZeroSegmentsCalculator(Path path) : base(path) { }
-
-            public override void CalculateLength(int segment) { }
-        }
-
-        private class OneSegmentsCalculator : SegmentLengthCalculator
-        {
-            public OneSegmentsCalculator(Path path) : base(path) { }
-
-            public override void CalculateLength(int segment) => _path._segmentsLengths[segment] = 0f;
-        }
-
-        private class TwoSegmentsCalculator : SegmentLengthCalculator
-        {
-            public TwoSegmentsCalculator(Path path) : base(path) { }
-
-            public override void CalculateLength(int segment) => _path._segmentsLengths[segment] = Vector3.Distance(_path._points[0].Position, _path._points[1].Position);
-        }
-
-        private class ManySegmentsCalculator : SegmentLengthCalculator
-        {
-            public ManySegmentsCalculator(Path path) : base(path) { }
-
-            public override void CalculateLength(int segment)
-            {
-                var length = 0f;
-
-                var t = 0f;
-                var lastPosition = _path._points[segment].Position;
-
-                var p0 = _path._points[_path.WrapIndex(segment - 1)].Position;
-                var p1 = _path._points[segment].Position;
-                var p2 = _path._points[_path.WrapIndex(segment + 1)].Position;
-                var p3 = _path._points[_path.WrapIndex(segment + 2)].Position;
-
-                while (t < 1f)
-                {
-                    var position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
-                    length += Vector3.Distance(lastPosition, position);
-
-                    lastPosition = position;
-                    t += _path._step;
-                }
-
-                _path._segmentsLengths[segment] = length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
-            }
-        }
-        #endregion
-
         #region State
         [SerializeField]
         private List<Point> _points = new();
@@ -103,8 +42,6 @@ namespace Paths
                 return _looped ? _points.Count : _points.Count < 4 ? 1 : _points.Count - 3;
             }
         }
-
-        private SegmentLengthCalculator[] _segmentCalculators;
 
         [SerializeField]
         private int _segmentCalculatorIndex;
@@ -159,15 +96,6 @@ namespace Paths
             private set => _length = value;
         }
         #endregion
-
-        // Used by serialization system.
-        private Path() => _segmentCalculators = new SegmentLengthCalculator[]
-        {
-            new ZeroSegmentsCalculator(this),
-            new OneSegmentsCalculator(this),
-            new TwoSegmentsCalculator(this),
-            new ManySegmentsCalculator(this)
-        };
 
         #region Create
         /// <summary>
@@ -531,8 +459,6 @@ namespace Paths
         #region Segments operations
         private void SetNewSegmentsCalculator() => _segmentCalculatorIndex = Mathf.Min(_segmentsLengths.Count, 3);
 
-        private SegmentLengthCalculator GetCurrentSegmentCalculator() => _segmentCalculators[_segmentCalculatorIndex];
-
         private void RecalculateAllSegments()
         {
             for (int i = 0; i < _segmentsLengths.Count; i++)
@@ -541,7 +467,36 @@ namespace Paths
             RecalculatePathLength();
         }
 
-        private void RecalculateSegmentLength(int segment) => GetCurrentSegmentCalculator().CalculateLength(segment);
+        private void RecalculateSegmentLength(int segment)
+        {
+            if (_segmentCalculatorIndex == 1)
+                _segmentsLengths[segment] = 0f;
+            else if (_segmentCalculatorIndex == 2)
+                _segmentsLengths[segment] = Vector3.Distance(_points[0].Position, _points[1].Position);
+            else if (_segmentCalculatorIndex == 3)
+            {
+                var length = 0f;
+
+                var t = 0f;
+                var lastPosition = _points[segment].Position;
+
+                var p0 = _points[WrapIndex(segment - 1)].Position;
+                var p1 = _points[segment].Position;
+                var p2 = _points[WrapIndex(segment + 1)].Position;
+                var p3 = _points[WrapIndex(segment + 2)].Position;
+
+                while (t < 1f)
+                {
+                    var position = CatmullRomSpline.CalculatePoint(t, p0, p1, p2, p3);
+                    length += Vector3.Distance(lastPosition, position);
+
+                    lastPosition = position;
+                    t += _step;
+                }
+
+                _segmentsLengths[segment] = length += Vector3.Distance(lastPosition, CatmullRomSpline.CalculatePoint(1f, p0, p1, p2, p3));
+            }
+        }
 
         private void RecalculatePathLength()
         {
