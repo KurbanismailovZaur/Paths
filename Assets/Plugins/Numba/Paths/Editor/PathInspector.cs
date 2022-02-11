@@ -657,8 +657,6 @@ namespace Paths
 
         private void DrawPoint(int number, bool isControl, bool drawBlackDot, bool drawLabel, bool drawYellowCircle = true)
         {
-            Handles.BeginGUI();
-
             var removeRect = Rect.zero;
             var needDrawRemoveButton = false;
 
@@ -668,6 +666,8 @@ namespace Paths
             GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
             if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(point.Position), Vector3.zero)))
                 return;
+
+            Handles.BeginGUI();
 
             if (_selectedPointIndex != number)
             {
@@ -811,11 +811,11 @@ namespace Paths
             direction *= averageDistance / (_path.PointsCount - 1);
             var localPos = GetPathPoint(_path.PointsCount - 1, false).Position + direction;
 
+            DrawLine(GetPathPoint(_path.PointsCount - 1).Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
+
             GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
             if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(localPos), Vector3.zero)))
                 return;
-
-            DrawLine(GetPathPoint(_path.PointsCount - 1).Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
 
             Handles.BeginGUI();
             GUI.DrawTexture(GetPointRectInSceneView(localPos, 24f, true), _textures["blue circle"]);

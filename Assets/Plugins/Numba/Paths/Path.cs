@@ -270,6 +270,7 @@ namespace Paths
         /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
         /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
+        /// <exception cref="ArgumentException"></exception>
         public static Path CreateSpiral3D(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
         {
             if (coils < 1)
@@ -450,7 +451,7 @@ namespace Paths
 
             Resolution = Mathf.Max((int)resolution, 4);
         }
-        
+
         private PointData TransformPointDataToWorldSpace(PointData pointData)
         {
             return new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
@@ -520,24 +521,30 @@ namespace Paths
             }
         }
 
+        /// <summary>
+        /// Gets path's segment length.
+        /// </summary>
+        /// <param name="segment">The segment the length of which you want to get.</param>
+        /// <returns>Segment's length.</returns>
+        /// <exception cref="ArgumentException"></exception>
         public float GetSegmentLength(int segment)
         {
             if (_points.Count < 2)
-                throw new Exception($"Segment {segment} not exist.");
+                throw new ArgumentException($"Segment {segment} not exist.", nameof(segment));
 
             if (!_looped)
             {
                 if (_points.Count < 4 && segment > 0)
-                    throw new Exception($"Segment {segment} not exist.");
+                    throw new ArgumentException($"Segment {segment} not exist.", nameof(segment));
 
                 if (_points.Count > 3 && segment > _points.Count - 4)
-                    throw new Exception($"Segment {segment} not exist.");
+                    throw new ArgumentException($"Segment {segment} not exist.", nameof(segment));
 
                 if (_points.Count > 2)
                     segment += 1;
             }
             else if (segment > _points.Count - 1)
-                throw new Exception($"Segment {segment} not exist.");
+                throw new ArgumentException($"Segment {segment} not exist.", nameof(segment));
 
             return _segmentsLengths[segment];
         }
@@ -800,7 +807,7 @@ namespace Paths
             var point = _points[index];
             point.Rotation = rotation;
             _points[index] = point;
-            
+
             RecalculateSegmentsAfterChanging(index);
         }
 
@@ -857,19 +864,17 @@ namespace Paths
         /// <param name="index">Index of the point.</param>
         /// <param name="useGlobal">Is it necessary to convert a calculated point from local space to global?</param>
         /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
+        /// <exception cref="ArgumentException"></exception>
         public PointData GetPoint(int index, bool useGlobal = true)
         {
-            if (index < 0)
-                throw new Exception("Index can't be less that 0.");
-
-            if (_points.Count == 0)
-                throw new Exception("Path does not exist.");
+            if (_points.Count == 0 || index < 0)
+                throw new ArgumentException("Index can't be less than 0.", nameof(index));
 
             if (!_looped && _points.Count > 2)
             {
                 index++;
                 if (_points.Count == 3 && index > 2 || _points.Count > 3 && index > _points.Count - 2)
-                    throw new Exception("Index can't be greater than active points count.");
+                    throw new ArgumentException("Index can't be greater than end points count.", nameof(index));
             }
 
             return GetPointByIndex(index, useGlobal);
@@ -883,24 +888,11 @@ namespace Paths
         /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
         /// <param name="useGlobal"><inheritdoc cref="GetPoint(int, bool)" path="/param[@name='useGlobal']"/></param>
         /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public PointData GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
-            if (_points.Count == 0)
-                throw new Exception("Path does not contain points.");
-
-            if (_points.Count == 1)
-            {
-                var point = _points[0];
-
-                if (useGlobal)
-                {
-                    point.Position = transform.TransformPoint(point.Position);
-                    point.Rotation = transform.rotation * point.Rotation;
-                }
-
-                return new PointData(point, Vector3.zero);
-            }
+            if (_points.Count < 2)
+                throw new ArgumentException($"Path does not contain segment {segment}.", nameof(segment));
 
             var length = GetSegmentLength(segment);
             float normalizedDistance;
@@ -928,7 +920,7 @@ namespace Paths
                 if (_points[0].Position == _points[1].Position)
                 {
                     position = _points[0].Position;
-                    direction = Vector3.zero; 
+                    direction = Vector3.zero;
                 }
                 else
                 {
@@ -942,7 +934,7 @@ namespace Paths
                     rotation = Quaternion.Lerp(_points[from].Rotation, _points[to].Rotation, normalizedDistance);
 
                 pointData = new PointData(position, rotation, direction);
-                
+
                 if (useGlobal)
                     pointData = new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
 
