@@ -5,12 +5,18 @@ using UnityEngine;
 
 namespace Paths
 {
+    /// <summary>
+    /// The point through which the <see cref="Path"/> passes.
+    /// </summary>
     [Serializable]
     public struct Point
     {
         [SerializeField]
         private Vector3 _position;
 
+        /// <summary>
+        /// Position of the point.
+        /// </summary>
         public Vector3 Position
         {
             get => _position;
@@ -20,6 +26,9 @@ namespace Paths
         [SerializeField]
         private Quaternion _rotation;
 
+        /// <summary>
+        /// Rotation of the point.
+        /// </summary>
         public Quaternion Rotation
         {
             get => _rotation;
@@ -47,6 +56,11 @@ namespace Paths
         }
 #endif
 
+        /// <summary>
+        /// Create point.
+        /// </summary>
+        /// <param name="position">Point's position.</param>
+        /// <param name="rotation">Point's rotation.</param>
         public Point(Vector3 position, Quaternion rotation)
         {
             _position = position;

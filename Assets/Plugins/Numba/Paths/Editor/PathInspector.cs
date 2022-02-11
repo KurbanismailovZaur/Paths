@@ -78,7 +78,7 @@ namespace Paths
 
         private Point GetPathPoint(int index, bool useGlobal = true)
         {
-            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPointSimple" && m.GetParameters().Length == 2);
+            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPointByIndex" && m.GetParameters().Length == 2);
             return (PointData)method.Invoke(_path, new object[] { index, useGlobal });
         }
 
@@ -562,8 +562,8 @@ namespace Paths
 
             _listView.itemIndexChanged += (from, to) =>
             {
-                var fromPoint = _path.GetPointSimple(from, false);
-                var toPoint = _path.GetPointSimple(to, false);
+                var fromPoint = _path.GetPointByIndex(from, false);
+                var toPoint = _path.GetPointByIndex(to, false);
 
                 _path.SetPoint(from, toPoint, false);
                 _path.SetPoint(to, fromPoint, false);

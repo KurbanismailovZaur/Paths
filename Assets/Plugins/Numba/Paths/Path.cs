@@ -8,6 +8,10 @@ using UnityEngine;
 
 namespace Paths
 {
+    /// <summary>
+    /// Represents a path in three-dimensional space, passing through points.<br/>
+    /// Points are represent by the <see cref="Point"/> type.
+    /// </summary>
     public class Path : MonoBehaviour
     {
         #region Segments length calculators
@@ -75,11 +79,20 @@ namespace Paths
         [SerializeField]
         private List<Point> _points = new();
 
+        /// <summary>
+        /// Points count from which the path contains.
+        /// </summary>
         public int PointsCount => _points.Count;
 
         [SerializeField]
         private List<float> _segmentsLengths = new();
 
+        /// <summary>
+        /// The number of segments that make up a path. A segment is a curve between two points.<br/>
+        /// In a looped path the number of segments is equal to the number of points.<br/>
+        /// In a non-circular path, the number of segments is either 3 (when the path consists of 3 points)<br/>
+        /// or the number of points minus 3 (when the path consists of more than 3 points).
+        /// </summary>
         public int SegmentsCount
         {
             get
@@ -99,6 +112,9 @@ namespace Paths
         [SerializeField]
         private int _resolution = 1;
 
+        /// <summary>
+        /// Represents the number of sub-segments between two points. Clamped between 1 and 100.
+        /// </summary>
         public int Resolution
         {
             get => _resolution;
@@ -118,6 +134,9 @@ namespace Paths
         [SerializeField]
         private bool _looped;
 
+        /// <summary>
+        /// Is the path looped?
+        /// </summary>
         public bool Looped
         {
             get => _looped;
@@ -131,6 +150,9 @@ namespace Paths
         [SerializeField]
         private float _length;
 
+        /// <summary>
+        /// Length of the whole path.
+        /// </summary>
         public float Length
         {
             get => _length;
@@ -148,8 +170,17 @@ namespace Paths
         };
 
         #region Create
+        /// <summary>
+        /// Creates a path in the center of global coordinates and with <see cref="Quaternion.identity"/> rotation.
+        /// </summary>
+        /// <returns>The path.</returns>
         public static Path Create() => Create(Vector3.zero);
 
+        /// <summary>
+        /// Creates a path at the specified position.
+        /// </summary>
+        /// <param name="pivotPosition">Position of the path pivot.</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
         public static Path Create(Vector3 pivotPosition)
         {
             var path = new GameObject("Path").AddComponent<Path>();
@@ -158,20 +189,50 @@ namespace Paths
             return path;
         }
 
+        /// <summary>
+        /// Creates a path at a specified position with specified points.
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="useGlobals">Are the points passed in global space?</param>
+        /// <param name="points">The points representing the path.</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
         public static Path Create(Vector3 pivotPosition, bool useGlobals, params Vector3[] points) => Create(pivotPosition, useGlobals, (IEnumerable<Vector3>)points);
 
-        public static Path Create(Vector3 pivotPosition, bool useGlobal, IEnumerable<Vector3> points)
+        /// <summary>
+        /// <inheritdoc cref="Create(Vector3, bool, Vector3[])"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="useGlobals"><inheritdoc cref="Create(Vector3, bool, Vector3[])" path="/param[@name='useGlobals']"/></param>
+        /// <param name="points"><inheritdoc cref="Create(Vector3, bool, Vector3[])" path="/param[@name='points']"/></param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path Create(Vector3 pivotPosition, bool useGlobals, IEnumerable<Vector3> points)
         {
             var path = Create(pivotPosition);
 
             foreach (var point in points)
-                path.AddPoint(point, useGlobal);
+                path.AddPoint(point, useGlobals);
 
             return path;
         }
 
+        /// <summary>
+        /// Creates a path representing a polygon.
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="sideCount">How many sides does a polygon have?</param>
+        /// <param name="radius">How far away is each corner of the polygon from its center?</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
         public static Path CreatePolygon(Vector3 pivotPosition, int sideCount, float radius) => CreatePolygon(pivotPosition, Vector3.up, sideCount, radius);
 
+        /// <summary>
+        /// <inheritdoc cref="CreatePolygon(Vector3, int, float)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="normal">Where is the face of the landfill pointing?</param>
+        /// <param name="sideCount"><inheritdoc cref="CreatePolygon(Vector3, int, float)" path="/param[@name='sideCount']"/></param>
+        /// <param name="radius"><inheritdoc cref="CreatePolygon(Vector3, int, float)" path="/param[@name='radius']"/></param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        /// <exception cref="ArgumentException"></exception>
         public static Path CreatePolygon(Vector3 pivotPosition, Vector3 normal, int sideCount, float radius)
         {
             if (sideCount < 3)
@@ -198,8 +259,28 @@ namespace Paths
             return path;
         }
 
+        /// <summary>
+        /// Creates a path that represents a two-dimensional spiral.
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="offsetAngle">Angular offset of the beginning of the spiral</param>
+        /// <param name="coils">How many turns in the coil?</param>
+        /// <param name="step">What is the distance between the coils?</param>
+        /// <param name="pointsCountPerCoil">How many points should be generated per turn?</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
         public static Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
 
+        /// <summary>
+        /// <inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
+        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='offsetAngle']"/></param>
+        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
+        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
+        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
         {
             if (coils < 1)
@@ -240,8 +321,27 @@ namespace Paths
             return path;
         }
 
+        /// <summary>
+        /// Creates a path that represents a three-dimensional spiral.
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='offsetAngle']"/></param>
+        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
+        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
+        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
+        /// <returns></returns>
         public static Path CreateSpiral3D(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral3D(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
 
+        /// <summary>
+        /// <inheritdoc cref="CreateSpiral3D(Vector3, float, int, float, int)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
+        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='offsetAngle']"/></param>
+        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
+        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
+        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
+        /// <returns></returns>
         public static Path CreateSpiral3D(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
         {
             if (coils < 1)
@@ -281,8 +381,8 @@ namespace Paths
 
             ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
             path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
-            var pos = path.GetPointSimple(0, false).Position;
-            path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointSimple(1, false).Position));
+            var pos = path.GetPointByIndex(0, false).Position;
+            path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointByIndex(1, false).Position));
 
             return path;
         }
@@ -372,90 +472,10 @@ namespace Paths
 
         private int WrapIndex(int index) => (((index - 0) % (_points.Count - 0)) + (_points.Count - 0)) % (_points.Count - 0) + 0;
 
-        #region Path optimizing
-        public void OptimizeByAngle(float maxAngle = 8f)
-        {
-            bool CheckAngle(int segment, float t, Vector3 lastPosition, Vector3 lastVector, out PointData pointData, out Vector3 vector, out float angle)
-            {
-                pointData = GetPoint(segment, t);
-                vector = (pointData.Position - lastPosition).normalized;
-
-                return (angle = Vector3.Angle(lastVector, vector)) > maxAngle;
-            }
-
-            if (_points.Count < 3)
-            {
-                _resolution = 1;
-                return;
-            }
-
-            var currentSegment = 0;
-
-            for (int i = 3; i <= 100; i++)
-            {
-                _resolution = i;
-                _step = 1f / _resolution;
-
-                Vector3 lastVector;
-
-                RecalculateSegmentLength(currentSegment);
-                var prevSegment = currentSegment - 1;
-
-                if (_looped)
-                {
-                    prevSegment = WrapIndex(prevSegment);
-                    RecalculateSegmentLength(prevSegment);
-
-                    lastVector = (GetPoint(currentSegment, 0f).Position - GetPoint(prevSegment, 1f - _step).Position).normalized;
-                }
-                else
-                {
-                    if (currentSegment == 0)
-                        lastVector = (GetPoint(currentSegment, _step).Position - GetPoint(currentSegment, 0f).Position).normalized;
-                    else
-                    {
-                        RecalculateSegmentLength(prevSegment);
-                        lastVector = (GetPoint(currentSegment, 0f).Position - GetPoint(prevSegment, 1f - _step).Position).normalized;
-                    }
-                }
-
-                for (int j = currentSegment; j < SegmentsCount; j++)
-                {
-                    var t = _step;
-                    var lastPosition = GetPoint(j, 0f).Position;
-
-                    PointData pointData;
-                    Vector3 vector;
-                    float angle;
-
-                    while (t < 1f)
-                    {
-                        if (CheckAngle(j, t, lastPosition, lastVector, out pointData, out vector, out angle))
-                            goto ResolutionCycle;
-
-                        lastPosition = pointData.Position;
-                        lastVector = vector;
-                        t += _step;
-                    }
-
-                    if (CheckAngle(j, 1f, lastPosition, lastVector, out pointData, out vector, out angle))
-                        goto ResolutionCycle;
-
-                    lastVector = vector;
-
-                    if (++currentSegment < SegmentsCount)
-                        RecalculateSegmentLength(currentSegment);
-                }
-
-                // Reaching this code means, that all segments are fairly smooth.
-                break;
-
-            ResolutionCycle:;
-            }
-
-            RecalculateAllSegments();
-        }
-
+        /// <summary>
+        /// Optimize the path. The algorithm takes into account the positions of control and end points,<br/>
+        /// thus trying to anticipate rough turns in the path and smooth them out by increasing the resolution.
+        /// </summary>
         public void Optimize()
         {
             if (_points.Count < 3)
@@ -502,8 +522,7 @@ namespace Paths
 
             Resolution = Mathf.Max((int)resolution, 4);
         }
-        #endregion
-
+        
         private PointData TransformPointToWorldSpace(PointData pointData)
         {
             return new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
@@ -768,7 +787,7 @@ namespace Paths
             RecalculateSegmentsAfterChanging(index);
         }
 
-        public PointData GetPointSimple(int index, bool useGlobal = true)
+        public PointData GetPointByIndex(int index, bool useGlobal = true)
         {
             var point = _points[WrapIndex(index)];
             var direction = _points.Count == 1 ? Vector3.zero : GetSegmentStartDirection(index);
@@ -795,7 +814,7 @@ namespace Paths
                     throw new Exception("Index can't be greater than active points count.");
             }
 
-            return GetPointSimple(index, useGlobal);
+            return GetPointByIndex(index, useGlobal);
         }
 
         public PointData GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
@@ -871,11 +890,11 @@ namespace Paths
             Point p0, p1, p2, p3;
 
             if (Mathf.Approximately(distance, 0f))
-                return GetPointSimple(segment, useGlobal);
+                return GetPointByIndex(segment, useGlobal);
             else if (Mathf.Approximately(distance, length))
             {
                 if (_looped && segment != SegmentsCount - 1 || !_looped && segment - 1 != SegmentsCount - 1)
-                    return GetPointSimple(segment + 1, useGlobal);
+                    return GetPointByIndex(segment + 1, useGlobal);
                 else
                 {
                     direction = GetSegmentEndDirection(segment);

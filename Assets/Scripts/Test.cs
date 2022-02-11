@@ -10,6 +10,13 @@ public class Test : MonoBehaviour
     [SerializeField]
     private Path _path;
 
+    private void Start()
+    {
+        if (Application.platform == RuntimePlatform.Android)
+        {
+            Application.targetFrameRate = 90;
+        }
+    }
     private void Update()
     {
         var t = Mathf.PingPong(Time.time * 0.25f, 1f);
