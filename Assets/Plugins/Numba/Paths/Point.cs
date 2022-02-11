@@ -41,6 +41,7 @@ namespace Paths
             }
         }
 
+        #region Editor
 #if UNITY_EDITOR
         [SerializeField]
         private Vector3 _eulers;
@@ -55,6 +56,7 @@ namespace Paths
             }
         }
 #endif
+        #endregion
 
         /// <summary>
         /// Create point.
@@ -66,9 +68,23 @@ namespace Paths
             _position = position;
             _rotation = rotation;
 
+            #region Editor
 #if UNITY_EDITOR
             _eulers = rotation.eulerAngles;
 #endif
+            #endregion
         }
+
+        #region Editor
+#if UNITY_EDITOR
+        public override bool Equals(object obj) => obj is Point point && this == point;
+
+        public override int GetHashCode() => _position.GetHashCode() ^ _rotation.GetHashCode();
+
+        public static bool operator ==(Point p1, Point p2) => p1._position == p2._position && p1._rotation == p2._rotation;
+
+        public static bool operator !=(Point p1, Point p2) => !(p1 == p2);
+#endif
+#endregion
     }
 }

@@ -193,24 +193,24 @@ namespace Paths
         /// Creates a path at a specified position with specified points.
         /// </summary>
         /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
-        /// <param name="useGlobals">Are the points passed in global space?</param>
+        /// <param name="useGlobal">Are the points passed in global space?</param>
         /// <param name="points">The points representing the path.</param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path Create(Vector3 pivotPosition, bool useGlobals, params Vector3[] points) => Create(pivotPosition, useGlobals, (IEnumerable<Vector3>)points);
+        public static Path Create(Vector3 pivotPosition, bool useGlobal, params Vector3[] points) => Create(pivotPosition, useGlobal, (IEnumerable<Vector3>)points);
 
         /// <summary>
         /// <inheritdoc cref="Create(Vector3, bool, Vector3[])"/>
         /// </summary>
         /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
-        /// <param name="useGlobals"><inheritdoc cref="Create(Vector3, bool, Vector3[])" path="/param[@name='useGlobals']"/></param>
+        /// <param name="useGlobal"><inheritdoc cref="Create(Vector3, bool, Vector3[])" path="/param[@name='useGlobal']"/></param>
         /// <param name="points"><inheritdoc cref="Create(Vector3, bool, Vector3[])" path="/param[@name='points']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path Create(Vector3 pivotPosition, bool useGlobals, IEnumerable<Vector3> points)
+        public static Path Create(Vector3 pivotPosition, bool useGlobal, IEnumerable<Vector3> points)
         {
             var path = Create(pivotPosition);
 
             foreach (var point in points)
-                path.AddPoint(point, useGlobals);
+                path.AddPoint(point, useGlobal);
 
             return path;
         }
@@ -279,7 +279,7 @@ namespace Paths
         /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
         /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
         /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
-        /// <returns></returns>
+        /// <returns><inheritdoc cref="Create"/></returns>
         /// <exception cref="ArgumentException"></exception>
         public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
         {
@@ -329,7 +329,7 @@ namespace Paths
         /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
         /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
         /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
-        /// <returns></returns>
+        /// <returns><inheritdoc cref="Create"/></returns>
         public static Path CreateSpiral3D(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral3D(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
 
         /// <summary>
@@ -341,7 +341,7 @@ namespace Paths
         /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
         /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
         /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
-        /// <returns></returns>
+        /// <returns><inheritdoc cref="Create"/></returns>
         public static Path CreateSpiral3D(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
         {
             if (coils < 1)
@@ -523,7 +523,7 @@ namespace Paths
             Resolution = Mathf.Max((int)resolution, 4);
         }
         
-        private PointData TransformPointToWorldSpace(PointData pointData)
+        private PointData TransformPointDataToWorldSpace(PointData pointData)
         {
             return new PointData(transform.TransformPoint(pointData.Position), transform.rotation * pointData.Rotation, transform.TransformDirection(pointData.Direction));
         }
@@ -611,8 +611,18 @@ namespace Paths
         #endregion
 
         #region Points operations
+        /// <summary>
+        /// Creates point with specified <paramref name="position"/> and adds it to the end of the path.
+        /// </summary>
+        /// <param name="position">Point's position.</param>
+        /// <param name="useGlobal">Is the <paramref name="position"/> being passed in global space?</param>
         public void AddPoint(Vector3 position, bool useGlobal = true) => AddPoint(new Point(position, Quaternion.identity), useGlobal);
 
+        /// <summary>
+        /// Adds a <paramref name="point"/> to the end of the path.
+        /// </summary>
+        /// <param name="point">Point which will be added.</param>
+        /// <param name="useGlobal">Is the <paramref name="point"/> being passed in global space?</param>
         public void AddPoint(Point point, bool useGlobal = true)
         {
             if (useGlobal)
@@ -634,8 +644,20 @@ namespace Paths
             }
         }
 
+        /// <summary>
+        /// Creates point with specified <paramref name="position"/> and inserts it by the specified <paramref name="index"/> in the path.
+        /// </summary>
+        /// <param name="index">The index by which you want to insert the point.</param>
+        /// <param name="position"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='position']"/></param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='useGlobal']"/></param>
         public void InsertPoint(int index, Vector3 position, bool useGlobal = true) => InsertPoint(index, new Point(position, Quaternion.identity), useGlobal);
 
+        /// <summary>
+        /// Inserts <paramref name="point"/> by the specified <paramref name="index"/> in the path.
+        /// </summary>
+        /// <param name="index"><inheritdoc cref="InsertPoint(int, Vector3, bool)" path="/param[@name='index']"/></param>
+        /// <param name="point">Point which will be inserted.</param>
+        /// <param name="useGlobal">Is the <paramref name="point"/> being passed in global space?</param>
         public void InsertPoint(int index, Point point, bool useGlobal = true)
         {
             if (useGlobal)
@@ -657,6 +679,12 @@ namespace Paths
             }
         }
 
+        /// <summary>
+        /// Checks if the path contains a point with the specified <paramref name="position"/>.
+        /// </summary>
+        /// <param name="position"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='position']"/></param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><see langword="true"/> if a point has been found.</returns>
         public bool ContainsPoint(Vector3 position, bool useGlobal = true)
         {
             if (useGlobal)
@@ -665,6 +693,12 @@ namespace Paths
             return _points.FindIndex(p => p.Position == position) != -1;
         }
 
+        /// <summary>
+        /// Checks if the path contains a <paramref name="point"/>.
+        /// </summary>
+        /// <param name="point">The point to be found.</param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="ContainsPoint"/></returns>
         public bool ContainsPoint(Point point, bool useGlobal = true)
         {
             if (useGlobal)
@@ -673,6 +707,12 @@ namespace Paths
             return _points.Contains(point);
         }
 
+        /// <summary>
+        /// Finds the index of the point with the specified <paramref name="position"/>.
+        /// </summary>
+        /// <param name="position"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='position']"/></param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns>Index of the desired point, otherwise <see langword="-1"/>.</returns>
         public int IndexOfPoint(Vector3 position, bool useGlobal = true)
         {
             if (useGlobal)
@@ -681,6 +721,12 @@ namespace Paths
             return _points.FindIndex(p => p.Position == position);
         }
 
+        /// <summary>
+        /// Finds the index of the specified <paramref name="point"/>.
+        /// </summary>
+        /// <param name="point"><inheritdoc cref="ContainsPoint(Point, bool)" path="/param[@name='point']"/></param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Point, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="IndexOfPoint"/></returns>
         public int IndexOfPoint(Point point, bool useGlobal = true)
         {
             if (useGlobal)
@@ -689,6 +735,12 @@ namespace Paths
             return _points.IndexOf(point);
         }
 
+        /// <summary>
+        /// Removes a point at a specified <paramref name="position"/> in space.
+        /// </summary>
+        /// <param name="position"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='position']"/></param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><see langword="true"/> if a point has been found and removed.</returns>
         public bool RemovePoint(Vector3 position, bool useGlobal = true)
         {
             if (useGlobal)
@@ -702,6 +754,12 @@ namespace Paths
             return true;
         }
 
+        /// <summary>
+        /// Removes a point from path.
+        /// </summary>
+        /// <param name="point">Point to remove.</param>
+        /// <param name="useGlobal"><inheritdoc cref="AddPoint(Vector3, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><see langword="true"/> if a point has been found and removed.</returns>
         public bool RemovePoint(Point point, bool useGlobal = true)
         {
             if (useGlobal)
@@ -715,6 +773,10 @@ namespace Paths
             return true;
         }
 
+        /// <summary>
+        /// Deletes a point at a specified <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index">Index of the point to be removed.</param>
         public void RemovePointAt(int index)
         {
             _points.RemoveAt(index);
@@ -739,6 +801,9 @@ namespace Paths
             }
         }
 
+        /// <summary>
+        /// Removes all points in the path.
+        /// </summary>
         public void ClearPoints()
         {
             _points.Clear();
@@ -748,6 +813,12 @@ namespace Paths
         }
         #endregion
 
+        /// <summary>
+        /// Sets the <paramref name="position"/> of the point by the <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index">Index of the point.</param>
+        /// <param name="position">Position to be set</param>
+        /// <param name="useGlobal">Is the <paramref name="position"/> being passed in global space?</param>
         public void SetPoint(int index, Vector3 position, bool useGlobal = true)
         {
             if (useGlobal)
@@ -760,6 +831,12 @@ namespace Paths
             RecalculateSegmentsAfterChanging(index);
         }
 
+        /// <summary>
+        /// Sets the <paramref name="rotation"/> of the point by the <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index"><inheritdoc cref="SetPoint(int, Vector3, bool)" path="/param[@name='index']"/></param>
+        /// <param name="rotation">Rotation to be set</param>
+        /// <param name="useGlobal">Is the <paramref name="rotation"/> being passed in global space?</param>
         public void SetPoint(int index, Quaternion rotation, bool useGlobal = true)
         {
             if (useGlobal)
@@ -772,8 +849,21 @@ namespace Paths
             RecalculateSegmentsAfterChanging(index);
         }
 
+        /// <summary>
+        /// Sets the <paramref name="position"/> and <paramref name="rotation"/> of the point by the <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index"><inheritdoc cref="SetPoint(int, Vector3, bool)" path="/param[@name='index']"/></param>
+        /// <param name="position"><inheritdoc cref="SetPoint(int, Vector3, bool)" path="/param[@name='position']"/></param>
+        /// <param name="rotation"><inheritdoc cref="SetPoint(int, Quaternion, bool)" path="/param[@name='rotation']"/></param>
+        /// <param name="useGlobal">Is the <paramref name="position"/> and <paramref name="rotation"/> being passed in global space?</param>
         public void SetPoint(int index, Vector3 position, Quaternion rotation, bool useGlobal = true) => SetPoint(index, new Point(position, rotation), useGlobal);
 
+        /// <summary>
+        /// Sets the <paramref name="point"/> by the <paramref name="index"/>.
+        /// </summary>
+        /// <param name="index"><inheritdoc cref="SetPoint(int, Vector3, bool)" path="/param[@name='index']"/></param>
+        /// <param name="point">Point to be set.</param>
+        /// <param name="useGlobal">Is the <paramref name="point"/> being passed in global space?</param>
         public void SetPoint(int index, Point point, bool useGlobal = true)
         {
             if (useGlobal)
@@ -787,6 +877,12 @@ namespace Paths
             RecalculateSegmentsAfterChanging(index);
         }
 
+        /// <summary>
+        /// Calculates and returns a point by the specified index.
+        /// </summary>
+        /// <param name="index">Index of the point.</param>
+        /// <param name="useGlobal">Is it necessary to convert a point from local to global space?</param>
+        /// <returns>Calculated point.</returns>
         public PointData GetPointByIndex(int index, bool useGlobal = true)
         {
             var point = _points[WrapIndex(index)];
@@ -794,11 +890,18 @@ namespace Paths
             var pointData = new PointData(point, direction);
 
             if (useGlobal)
-                pointData = TransformPointToWorldSpace(pointData);
+                pointData = TransformPointDataToWorldSpace(pointData);
 
             return pointData;
         }
 
+        /// <summary>
+        /// Calculates and returns a point by the specified index.<br/>
+        /// This method does not take control points into account (for example, when the path is not looped and the number of points is greater than 2).        
+        /// </summary>
+        /// <param name="index">Index of the point.</param>
+        /// <param name="useGlobal">Is it necessary to convert a calculated point from local space to global?</param>
+        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
         public PointData GetPoint(int index, bool useGlobal = true)
         {
             if (index < 0)
@@ -817,6 +920,15 @@ namespace Paths
             return GetPointByIndex(index, useGlobal);
         }
 
+        /// <summary>
+        /// Calculates and returns a point on the specified <paramref name="segment"/>.<br/>
+        /// </summary>
+        /// <param name="segment">On which segment do you want to calculate the point?</param>
+        /// <param name="distance">At what distance from the beginning of the <paramref name="segment"/> should calculate the point?</param>
+        /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
+        /// <param name="useGlobal"><inheritdoc cref="GetPoint(int, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
+        /// <exception cref="Exception"></exception>
         public PointData GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (_points.Count == 0)
@@ -900,7 +1012,7 @@ namespace Paths
                     direction = GetSegmentEndDirection(segment);
 
                     if (useGlobal)
-                        pointData = TransformPointToWorldSpace(new PointData(_points[WrapIndex(segment + 1)], direction));
+                        pointData = TransformPointDataToWorldSpace(new PointData(_points[WrapIndex(segment + 1)], direction));
 
                     return pointData;
                 }
@@ -928,7 +1040,7 @@ namespace Paths
                     pointData = new PointData(Vector3.Lerp(lastPosition, position, distance / currentLength), Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance), (position - lastPosition).normalized);
 
                     if (useGlobal)
-                        pointData = TransformPointToWorldSpace(pointData);
+                        pointData = TransformPointDataToWorldSpace(pointData);
 
                     return pointData;
                 }
@@ -944,11 +1056,18 @@ namespace Paths
             pointData = new PointData(Vector3.Lerp(lastPosition, position, distance / currentLength), Quaternion.Lerp(p1.Rotation, p2.Rotation, normalizedDistance), (position - lastPosition).normalized);
 
             if (useGlobal)
-                pointData = TransformPointToWorldSpace(pointData);
+                pointData = TransformPointDataToWorldSpace(pointData);
 
             return pointData;
         }
 
+        /// <summary>
+        /// Calculates and returns a point on whole path.<br/>
+        /// </summary>
+        /// <param name="distance">At what distance from the beginning of the path should calculate the point?</param>
+        /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
+        /// <param name="useGlobal"><inheritdoc cref="GetPoint(int, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
         public PointData GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (useNormalizedDistance)

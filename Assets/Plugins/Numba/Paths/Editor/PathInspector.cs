@@ -135,6 +135,8 @@ namespace Paths
         private List<int> _pointsToRemove = new();
 
         private List<Action> _pointsToAdd = new();
+
+        private Plane[] _planes = new Plane[6];
         #endregion
 
         #region Callbacks
@@ -659,7 +661,13 @@ namespace Paths
 
             var removeRect = Rect.zero;
             var needDrawRemoveButton = false;
+
             var point = GetPathPoint(number, false);
+            var svRect = GetPointRectInSceneView(point.Position, 1f, true);
+
+            GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
+            if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(point.Position), Vector3.zero)))
+                return;
 
             if (_selectedPointIndex != number)
             {
@@ -758,6 +766,10 @@ namespace Paths
 
         private void DrawAdjacentAddButton(Vector3 position, int insertTo)
         {
+            GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
+            if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(position), Vector3.zero)))
+                return;
+
             Handles.BeginGUI();
             GUI.DrawTexture(GetPointRectInSceneView(position, 6f), _textures["white circle"]);
             Handles.EndGUI();
@@ -798,6 +810,10 @@ namespace Paths
 
             direction *= averageDistance / (_path.PointsCount - 1);
             var localPos = GetPathPoint(_path.PointsCount - 1, false).Position + direction;
+
+            GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
+            if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(localPos), Vector3.zero)))
+                return;
 
             DrawLine(GetPathPoint(_path.PointsCount - 1).Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
 
