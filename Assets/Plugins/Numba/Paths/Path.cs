@@ -146,14 +146,22 @@ namespace Paths
         /// <summary>
         /// Creates a path representing a polygon.
         /// </summary>
-        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
         /// <param name="sideCount">How many sides does a polygon have?</param>
         /// <param name="radius">How far away is each corner of the polygon from its center?</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path CreatePolygon(int sideCount, float radius) => CreatePolygon(Vector3.zero, Vector3.up, sideCount, radius);
+
+        /// <summary>
+        /// <inheritdoc cref="CreatePolygon(int, float)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="sideCount"><inheritdoc cref="CreatePolygon(int, float)" path="/param[@name='sideCount']"/></param>
+        /// <param name="radius"><inheritdoc cref="CreatePolygon(int, float)" path="/param[@name='radius']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
         public static Path CreatePolygon(Vector3 pivotPosition, int sideCount, float radius) => CreatePolygon(pivotPosition, Vector3.up, sideCount, radius);
 
         /// <summary>
-        /// <inheritdoc cref="CreatePolygon(Vector3, int, float)"/>
+        /// <inheritdoc cref="CreatePolygon(int, float)"/>
         /// </summary>
         /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
         /// <param name="normal">Where is the face of the landfill pointing?</param>
@@ -190,16 +198,28 @@ namespace Paths
         /// <summary>
         /// Creates a path that represents a two-dimensional spiral.
         /// </summary>
-        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
         /// <param name="offsetAngle">Angular offset of the beginning of the spiral</param>
         /// <param name="coils">How many turns in the coil?</param>
         /// <param name="step">What is the distance between the coils?</param>
         /// <param name="pointsCountPerCoil">How many points should be generated per turn?</param>
+        /// <param name="use3D">Is it necessary to use a three-dimensional spiral?</param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
+        public static Path CreateSpiral(float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false) => CreateSpiral(Vector3.zero, offsetAngle, coils, step, pointsCountPerCoil, use3D);
 
         /// <summary>
-        /// <inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)"/>
+        /// <inheritdoc cref="CreateSpiral(float, int, float, int, bool)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='offsetAngle']"/></param>
+        /// <param name="coils"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='coils']"/></param>
+        /// <param name="step"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='step']"/></param>
+        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='pointsCountPerCoil']"/></param>
+        /// <param name="use3D"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='pointsCountPerCoil']"/></param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false) => CreateSpiral(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil, use3D);
+
+        /// <summary>
+        /// <inheritdoc cref="CreateSpiral(float, int, float, int, bool)"/>
         /// </summary>
         /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
         /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
@@ -209,7 +229,7 @@ namespace Paths
         /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
+        public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)
         {
             if (coils < 1)
                 throw new ArgumentException("Coils can't be less than 0.", nameof(coils));
@@ -231,87 +251,45 @@ namespace Paths
 
             var ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
 
-            for (int i = 0; i < coils; i++)
+            if (!use3D)
             {
-                for (int j = 0; j < pointsCountPerCoil; j++)
+                for (int i = 0; i < coils; i++)
                 {
-                    angle += deltaAngle;
-                    ray.direction = Quaternion.AngleAxis(deltaAngle, normal) * ray.direction;
+                    for (int j = 0; j < pointsCountPerCoil; j++)
+                    {
+                        angle += deltaAngle;
+                        ray.direction = Quaternion.AngleAxis(deltaAngle, normal) * ray.direction;
 
-                    var distance = (step / (2f * Mathf.PI)) * (angle * Mathf.Deg2Rad);
-                    path.AddPoint(ray.GetPoint(distance), false);
+                        var distance = (step / (2f * Mathf.PI)) * (angle * Mathf.Deg2Rad);
+                        path.AddPoint(ray.GetPoint(distance), false);
+                    }
                 }
+
+                ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
+                path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
             }
-
-            ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
-            path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
-
-            return path;
-        }
-
-        /// <summary>
-        /// Creates a path that represents a three-dimensional spiral.
-        /// </summary>
-        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
-        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='offsetAngle']"/></param>
-        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
-        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
-        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
-        /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path CreateSpiral3D(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil) => CreateSpiral3D(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil);
-
-        /// <summary>
-        /// <inheritdoc cref="CreateSpiral3D(Vector3, float, int, float, int)"/>
-        /// </summary>
-        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
-        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
-        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='offsetAngle']"/></param>
-        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
-        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
-        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
-        /// <returns><inheritdoc cref="Create"/></returns>
-        /// <exception cref="ArgumentException"></exception>
-        public static Path CreateSpiral3D(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil)
-        {
-            if (coils < 1)
-                throw new ArgumentException("Coils can't be less than 0.", nameof(coils));
-
-            if (Mathf.Approximately(step, 0f) || step < 0f)
-                throw new ArgumentException("Step can't be equal or less than 0.", nameof(step));
-
-            if (pointsCountPerCoil < 3)
-                throw new ArgumentException("Points coint per coil cant be less than 3.", nameof(pointsCountPerCoil));
-
-            var path = Create(pivotPosition);
-            normal.Normalize();
-
-            var normalRotation = Quaternion.LookRotation(normal, normal == Vector3.up ? Vector3.forward : Vector3.up);
-
-            var deltaAngle = 360f / pointsCountPerCoil;
-            var angle = -deltaAngle;
-            offsetAngle *= -1f;
-            var prevPoint = Vector3.zero;
-
-            var ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
-
-            for (int i = 0; i < coils; i++)
+            else
             {
-                for (int j = 0; j < pointsCountPerCoil; j++)
+                var prevPoint = Vector3.zero;
+                for (int i = 0; i < coils; i++)
                 {
-                    angle += deltaAngle;
-                    ray.direction = Quaternion.AngleAxis(deltaAngle, normal) * ray.direction;
+                    for (int j = 0; j < pointsCountPerCoil; j++)
+                    {
+                        angle += deltaAngle;
+                        ray.direction = Quaternion.AngleAxis(deltaAngle, normal) * ray.direction;
 
-                    var distance = (step / (2f * Mathf.PI)) * (angle * Mathf.Deg2Rad);
-                    var point = ray.GetPoint(distance);
-                    path.AddPoint(point + normal * Vector3.Distance(point, prevPoint), false);
-                    prevPoint = point;
+                        var distance = (step / (2f * Mathf.PI)) * (angle * Mathf.Deg2Rad);
+                        var point = ray.GetPoint(distance);
+                        path.AddPoint(point + normal * Vector3.Distance(point, prevPoint), false);
+                        prevPoint = point;
+                    }
                 }
-            }
 
-            ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
-            path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
-            var pos = path.GetPointByIndex(0, false).Position;
-            path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointByIndex(1, false).Position));
+                ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
+                path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
+                var pos = path.GetPointByIndex(0, false).Position;
+                path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointByIndex(1, false).Position));
+            }
 
             return path;
         }
@@ -378,7 +356,7 @@ namespace Paths
         [MenuItem("GameObject/Path/Spiral")]
         private static void CreateSpiral()
         {
-            var path = CreateSpiral(Vector3.zero, 0f, 3, 0.3333333f, 8);
+            var path = CreateSpiral(0f, 3, 0.3333333f, 8);
             path.name = "Path (Spiral)";
             path.transform.SetParent(Selection.activeTransform, false);
 
@@ -389,7 +367,7 @@ namespace Paths
         [MenuItem("GameObject/Path/Spiral3D")]
         private static void CreateSpiral3D()
         {
-            var path = CreateSpiral3D(Vector3.zero, 0f, 3, 0.3333333f, 8);
+            var path = CreateSpiral(0f, 3, 0.3333333f, 8, true);
             path.name = "Path (Spiral3D)";
             path.transform.SetParent(Selection.activeTransform, false);
 
