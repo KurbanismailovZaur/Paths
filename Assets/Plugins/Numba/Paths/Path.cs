@@ -319,7 +319,7 @@ namespace Paths
 
         #region Editor
 #if UNITY_EDITOR
-        [MenuItem("GameObject/3D Object/Path/Empty", priority = 19)]
+        [MenuItem("GameObject/Path/Empty")]
         private static void CreateEmpty()
         {
             var path = Create();
@@ -330,7 +330,7 @@ namespace Paths
             Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
         }
 
-        [MenuItem("GameObject/3D Object/Path/Line", priority = 19)]
+        [MenuItem("GameObject/Path/Line")]
         private static void CreateLine()
         {
             var path = Create();
@@ -357,25 +357,25 @@ namespace Paths
             return path;
         }
 
-        [MenuItem("GameObject/3D Object/Path/Triangle", priority = 19)]
+        [MenuItem("GameObject/Path/Triangle")]
         private static void CreateTriangle() => CreatePolygon(3, "Triangle");
 
-        [MenuItem("GameObject/3D Object/Path/Rhombus", priority = 19)]
+        [MenuItem("GameObject/Path/Rhombus")]
         private static void CreateRhombus() => CreatePolygon(4, "Rhombus");
 
-        [MenuItem("GameObject/3D Object/Path/Pentagon", priority = 19)]
+        [MenuItem("GameObject/Path/Pentagon")]
         private static void CreatePentagon() => CreatePolygon(5, "Pentagon");
 
-        [MenuItem("GameObject/3D Object/Path/Hexagon", priority = 19)]
+        [MenuItem("GameObject/Path/Hexagon")]
         private static void CreateHexagon() => CreatePolygon(6, "Hexagon");
 
-        [MenuItem("GameObject/3D Object/Path/Octagon", priority = 19)]
+        [MenuItem("GameObject/Path/Octagon")]
         private static void CreateOctagon() => CreatePolygon(8, "Octagon");
 
-        [MenuItem("GameObject/3D Object/Path/Circle", priority = 19)]
+        [MenuItem("GameObject/Path/Circle")]
         private static void CreateCircle() => CreatePolygon(12, "Circle").Resolution = 2;
 
-        [MenuItem("GameObject/3D Object/Path/Spiral", priority = 19)]
+        [MenuItem("GameObject/Path/Spiral")]
         private static void CreateSpiral()
         {
             var path = CreateSpiral(Vector3.zero, 0f, 3, 0.3333333f, 8);
@@ -386,7 +386,7 @@ namespace Paths
             Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
         }
 
-        [MenuItem("GameObject/3D Object/Path/Spiral3D", priority = 19)]
+        [MenuItem("GameObject/Path/Spiral3D")]
         private static void CreateSpiral3D()
         {
             var path = CreateSpiral3D(Vector3.zero, 0f, 3, 0.3333333f, 8);

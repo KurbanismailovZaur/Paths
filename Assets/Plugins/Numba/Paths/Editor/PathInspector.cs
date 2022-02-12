@@ -417,6 +417,8 @@ namespace Paths
                 Undo.RecordObject(_path, null);
                 _path.Resolution = e.newValue;
                 Undo.SetCurrentGroupName($"Path Resolution Changed To {e.newValue}");
+
+                SceneView.lastActiveSceneView.Repaint();
             });
 
             _loopedToggle.RegisterValueChangedCallback(e =>
@@ -426,6 +428,8 @@ namespace Paths
 
                 Undo.RecordObject(_path, $"Path Loop Changed To {e.newValue}");
                 _path.Looped = e.newValue;
+
+                SceneView.lastActiveSceneView.Repaint();
             });
 
             _inspector.Q<Button>("optimize-button").clicked += () => _path.Optimize();
