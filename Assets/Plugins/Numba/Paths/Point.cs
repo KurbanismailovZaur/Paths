@@ -61,8 +61,25 @@ namespace Paths
         /// <summary>
         /// Create point.
         /// </summary>
-        /// <param name="position">Point's position.</param>
+        /// <param name="x">Position on <see langword="x"/> axis.</param>
+        /// <param name="y">Position on <see langword="y"/> axis.</param>
+        /// <param name="z">Position on <see langword="z"/> axis.</param>
+        public Point(float x, float y, float z) : this(x, y, z, Quaternion.identity) { }
+
+        /// <summary>
+        /// <inheritdoc cref="Point(float, float, float)"/>
+        /// </summary>
+        /// <param name="x"><inheritdoc cref="Point(float, float, float)" path="/param[@name='x']"/></param>
+        /// <param name="y"><inheritdoc cref="Point(float, float, float)" path="/param[@name='y']"/></param>
+        /// <param name="z"><inheritdoc cref="Point(float, float, float)" path="/param[@name='z']"/></param>
         /// <param name="rotation">Point's rotation.</param>
+        public Point(float x, float y, float z, Quaternion rotation) : this(new Vector3(x, y, z), rotation) { }
+
+        /// <summary>
+        /// <inheritdoc cref="Point(float, float, float)"/>
+        /// </summary>
+        /// <param name="position">Point's position.</param>
+        /// <inheritdoc cref="Point(float, float, float, Quaternion)" path="/param[@name='rotation']"/>
         public Point(Vector3 position, Quaternion rotation)
         {
             _position = position;
@@ -85,6 +102,6 @@ namespace Paths
 
         public static bool operator !=(Point p1, Point p2) => !(p1 == p2);
 #endif
-#endregion
+        #endregion
     }
 }
