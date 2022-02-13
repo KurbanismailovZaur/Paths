@@ -37,5 +37,7 @@ namespace Paths
         internal PointData(Vector3 position, Quaternion rotation, Vector3 direction) : this(new Point(position, rotation), direction) { }
 
         public static implicit operator Point(PointData pointData) => pointData._point;
+
+        public override string ToString() => $"PointData: {{Position: {Position}, Rotation: {Rotation}, Direction: {Direction}}}";
     }
 }

@@ -78,14 +78,14 @@ namespace Paths
 
         private Point GetPathPoint(int index, bool useGlobal = true)
         {
-            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPointByIndex" && m.GetParameters().Length == 2);
+            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPoint" && m.GetParameters().Length == 2);
             return (PointData)method.Invoke(_path, new object[] { index, useGlobal });
         }
 
         private Point GetPathPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             var method = _path.GetType().GetMethods()
-                .Single(m => m.Name == "GetPoint" && m.GetParameters().Length == 4);
+                .Single(m => m.Name == "Calculate" && m.GetParameters().Length == 4);
 
             return (PointData)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
         }

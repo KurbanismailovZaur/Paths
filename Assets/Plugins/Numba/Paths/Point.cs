@@ -103,5 +103,7 @@ namespace Paths
         public static bool operator !=(Point p1, Point p2) => !(p1 == p2);
 #endif
         #endregion
+
+        public override string ToString() => $"Point: {{Position: {Position}, Rotation: {Rotation}}}";
     }
 }
