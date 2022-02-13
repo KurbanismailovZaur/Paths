@@ -9,6 +9,6 @@ public class Test : MonoBehaviour
 {
     private void Start()
     {
-        Path.CreateSpiral(0f, 3, 1f, 8, true);
+        var path = Path.CreatePolygon(5, 1f);
     }
 }

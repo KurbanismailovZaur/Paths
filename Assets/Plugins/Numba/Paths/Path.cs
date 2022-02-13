@@ -192,6 +192,8 @@ namespace Paths
                 path.AddPoint(vector, false);
             }
 
+            path.Looped = true;
+
             return path;
         }
 
@@ -327,7 +329,6 @@ namespace Paths
             var path = CreatePolygon(Vector3.zero, sideCount, 1f);
             path.name = $"Path ({figureName})";
             path.transform.SetParent(Selection.activeTransform, false);
-            path.Looped = true;
 
             Selection.activeObject = path;
             Undo.RegisterCreatedObjectUndo(path.gameObject, $"Create Path ({figureName})");
