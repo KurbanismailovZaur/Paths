@@ -234,3 +234,49 @@ Paths поддерживает любую версию Unity, в которой 
 этот код создаст 3D-спираль со смещением 0 градусов, 3 витками, расстоянием между витками 1 метр и 8 точками на виток.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153734351-d5924f63-68ed-48f0-b492-14602f0170e6.gif)
+
+## Свойства пути
+* `PointsCount` - общее количество точек в пути
+* `SegmentsCount` - количество сегментов в пути. Сегмент это кривая между двумя точками. 
+* `Resolution` - разрешение пути. Влияет на все сегменты.
+* `Looped` - зациклен-ли путь?
+* `Length` - общая длина пути (сумма длин всех сегментов).
+
+## Оптимизация пути
+Вы можете использовать метод `Optimize` для оптимизации пути. Алгоритм подберет наиболее подходящее значение для поля `Resolution`, такое чтобы путь выглядел относительно сглаженным.
+
+```
+var path = Path.CreateSpiral(0f, 3, 1f, 8, true);
+path.Optimize();
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153754814-5c0a2354-f013-4377-a93b-743b75bf3e8f.png)
+
+## Длина сегмента
+Используйте метод `float GetSegmentLength(int segment)` чтобы получить длину конкретного сегмента пути.
+
+```
+var path = Path.CreatePolygon(4, 1f);
+var segment1Length = path.GetSegmentLength(1);
+Debug.Log(segment1Length);
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153755006-a85e047e-3f0d-456b-b118-b0ebdf7e74db.png)
+
+На рисунке выше красным обозначены индексы сегментов формируемых точками. Ниже вы можете увидеть результат вызова метода `GetSegmentLength`.
+
+![image](https://user-images.githubusercontent.com/5365111/153754945-07821be5-35f7-4292-895c-2f69021d2094.png)
+
+## Операции над точкам
+* `void AddPoint(Vector3 position, bool useGlobal = true)` - создает новую точку с указанной позицией и добавляет в конец пути.
+* `void AddPoint(Point point, bool useGlobal = true)` - добавляет точку в конец пути.
+* `void InsertPoint(int index, Vector3 position, bool useGlobal = true)` - создает новую точку с указанной позицией и вставляет ее в путь по указанному индексу. 
+* `void InsertPoint(int index, Point point, bool useGlobal = true)` - вставляет точку в путь по указанному индексу. 
+* `bool ContainsPoint(Vector3 position, bool useGlobal = true)` - проверяет есть-ли точка с указанной позицией в пути.
+* `bool ContainsPoint(Point point, bool useGlobal = true)` - проверяет есть-ли точка в пути.
+* `int IndexOfPoint(Vector3 position, bool useGlobal = true)` - находит точку с указанной позицией в пути и возвращает ее индекс
+* `int IndexOfPoint(Point point, bool useGlobal = true)` - находит точку в пути и возвращает ее индекс
+* `bool RemovePoint(Vector3 position, bool useGlobal = true)` - удаляет точку с указанной позицией из пути. Возврашает `true` если точка была удалена.
+* `bool RemovePoint(Point point, bool useGlobal = true)` - удаляет точку из пути. Возврашает `true` если точка была удалена.
+* `void RemovePointAt(int index)` - удаляет точку из пути по указанному индексу.
+* `void ClearPoints()` - удаляет все точки из пути.
