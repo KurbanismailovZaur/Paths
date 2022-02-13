@@ -156,4 +156,15 @@ Paths поддерживает любую версию Unity, в которой 
 
 ![image](https://user-images.githubusercontent.com/5365111/153730736-846724a8-d2ac-4251-abce-ff301618465d.png)
 
-Вы также можете использовать методы `CreatePolygon`, `CreateSpiral` и `CreateSpiral3D`. 
+Вы также можете использовать методы `CreatePolygon` и `CreateSpiral`.
+
+`CreatePolygon` создает путь-многогранник (треугольник, ромб, пятиугольник и прочие). Имеются 3 перегрузки:
+1. `CreatePolygon(int sideCount, float radius)`
+2. `CreatePolygon(Vector3 pivotPosition, int sideCount, float radius)`
+3. `CreatePolygon(Vector3 pivotPosition, Vector3 normal, int sideCount, float radius)`
+
+Где:
+* `sideCount` - количество граней.
+* `radius` - расстояние от центра фигуры до любого угла.
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
