@@ -168,3 +168,33 @@ Paths поддерживает любую версию Unity, в которой 
 * `radius` - расстояние от центра фигуры до любого угла.
 * `pivotPosition` - позиция пути в пространстве.
 * `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+
+К примеру
+
+`var path = Path.CreatePolygon(5, 1f);`
+
+этот код создаст пятиугольник с радиусом 1 метр.
+
+![image](https://user-images.githubusercontent.com/5365111/153734111-973d5c08-c279-4a5f-b13d-a2a1bed63ad6.png)
+
+`CreateSpiral` создает путь-спираль (Архимедову). Имеются 3 перегрузки:
+1. `CreateSpiral(float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)`
+2. `CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)`
+3. `CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)`
+
+Где:
+* `offsetAngle` - угловое смещение (в градусах) спирали, то есть поворот спирали вокруг ее центра.
+* `coils` - количество витков спирали.
+* `step` - шаг спирали, то есть расстояние между двумя витками.
+* `pointsCountPerCoil` - количество генерируемых точек на один виток.
+* `use3D` - нужно-ли создавать трезмерную спираль?
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+
+К примеру
+
+`var path = Path.CreateSpiral(0f, 3, 1f, 8, true);`
+
+этот код создаст 3D-спираль со смещением 0 градусов, 3 витками, расстоянием между витками 1 метр и 8 точками на виток.
+
+![Анимация](https://user-images.githubusercontent.com/5365111/153734351-d5924f63-68ed-48f0-b492-14602f0170e6.gif)
