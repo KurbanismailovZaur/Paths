@@ -9,6 +9,21 @@ public class Test : MonoBehaviour
 {
     private void Start()
     {
-        var path = Path.CreatePolygon(5, 1f);
+        var path = Path.Create();
+        path.AddPoint(Vector3.zero);
+        path.AddPoint(new Vector3(1f, 0f, 0f));
+
+        var point = new Point(new Vector3(2f, 0f, 0f), Quaternion.identity);
+
+        path.InsertPoint(0, point);
+        Debug.Log(path.ContainsPoint(point));
+
+        var index = path.IndexOfPoint(Vector3.zero);
+        Debug.Log(index);
+
+        path.RemovePoint(point);
+        path.RemovePointAt(index);
+
+        Debug.Log(path.PointsCount);
     }
 }

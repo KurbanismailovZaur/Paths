@@ -668,7 +668,7 @@ namespace Paths
             var svRect = GetPointRectInSceneView(point.Position, 1f, true);
 
             GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
-            if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(point.Position), Vector3.zero)))
+            if (_selectedPointIndex != number && !GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(point.Position), Vector3.zero)))
                 return;
 
             Handles.BeginGUI();
