@@ -13,7 +13,7 @@ public class Test : MonoBehaviour
         path.AddPoint(Vector3.zero);
         path.AddPoint(new Vector3(1f, 0f, 0f));
 
-        var point = new Point(new Vector3(2f, 0f, 0f), Quaternion.identity);
+        var point = new Point(2f, 0f, 0f, Quaternion.identity);
 
         path.InsertPoint(0, point);
         Debug.Log(path.ContainsPoint(point));
