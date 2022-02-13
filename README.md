@@ -281,39 +281,59 @@ var point2 = new Point(1f, 2f, 3f, Quaternion.Euler(0f, 90f, 0f)); // Делае
 # Тип PointData
 Данный тип представляет собой расширенную версию структуры `Point`, которая помимо свойств `Position` и `Rotation` содержит еще и `Direction`. `Direction` это направление в пространстве, по которому движется объект, то есть это вектор представляющий направление движения по пути. Вам не предется создавать объекты структуры `PointData` вручную, вместо этого методы которые мы изучим чуть ниже в этой документации сами будут вычислять это направление и возвращать вам `PointData` вместо `Point` там, где это необходимо.
 
-## Операции над точкам
+# Операции над точкам
+### Добавление в конец
+* `void AddPoint(float x, float y, float z, bool useGlobal = true)` - создает новую точку с указанной позицией и добавляет в конец пути.
 * `void AddPoint(Vector3 position, bool useGlobal = true)` - создает новую точку с указанной позицией и добавляет в конец пути.
 * `void AddPoint(Point point, bool useGlobal = true)` - добавляет точку в конец пути.
+### Вставка по индексу
+* `void InsertPoint(int index, float x, float y, float z, bool useGlobal = true)` - создает новую точку с указанной позицией и вставляет ее в путь по указанному индексу. 
 * `void InsertPoint(int index, Vector3 position, bool useGlobal = true)` - создает новую точку с указанной позицией и вставляет ее в путь по указанному индексу. 
 * `void InsertPoint(int index, Point point, bool useGlobal = true)` - вставляет точку в путь по указанному индексу. 
+### проверка на содержание
+* `bool ContainsPoint(float x, float y, float z, bool useGlobal = true)` - проверяет есть-ли точка с указанной позицией в пути.
 * `bool ContainsPoint(Vector3 position, bool useGlobal = true)` - проверяет есть-ли точка с указанной позицией в пути.
 * `bool ContainsPoint(Point point, bool useGlobal = true)` - проверяет есть-ли точка в пути.
+### Поиск индекса
+* `int IndexOfPoint(float x, float y, float z, bool useGlobal = true)` - находит точку с указанной позицией в пути и возвращает ее индекс
 * `int IndexOfPoint(Vector3 position, bool useGlobal = true)` - находит точку с указанной позицией в пути и возвращает ее индекс
 * `int IndexOfPoint(Point point, bool useGlobal = true)` - находит точку в пути и возвращает ее индекс
+### Удаление из пути
+* `bool RemovePoint(float x, float y, float z, bool useGlobal = true)` - удаляет точку с указанной позицией из пути. Возврашает `true` если точка была удалена.
 * `bool RemovePoint(Vector3 position, bool useGlobal = true)` - удаляет точку с указанной позицией из пути. Возврашает `true` если точка была удалена.
 * `bool RemovePoint(Point point, bool useGlobal = true)` - удаляет точку из пути. Возврашает `true` если точка была удалена.
+### Удаление по индексу
 * `void RemovePointAt(int index)` - удаляет точку из пути по указанному индексу.
+### Полная очистка
 * `void ClearPoints()` - удаляет все точки из пути.
 
-Пример использования этих методов.
+### Пример использования этих методов.
+Почти все методы описанные выше имеют параметр `useGlobal`, который сообщает методу в каком пространстве (в локальном? или в глобальном?) в него передаются позиция и/или поворот. Значение `true` означает что данные передаются в глобальном пространстве.
 
 ```
-var path = Path.Create(); // Создаем путь.
-path.AddPoint(Vector3.zero); // Добавляем точку [0, 0, 0] в конец пути
-path.AddPoint(new Vector3(1f, 0f, 0f)); // Добавляем точку [1, 0, 0] в конец пути.
+var path = Path.Create();
+path.AddPoint(Vector3.zero);
+path.AddPoint(1f, 0f, 0f);
 
-var point = new Point(2f, 0f, 0f, Quaternion.identity); // Создаем точку [2, 0, 0] с нулевым поворотом.
+var point = new Point(2f, 0f, 0f, Quaternion.identity);
 
-path.InsertPoint(0, point); // Вставляем точку point в начало пути (по индексу 0). 
-Debug.Log(path.ContainsPoint(point)); // Проверяем содержит ли путь точку point.
+path.InsertPoint(0, point);
+Debug.Log(path.ContainsPoint(point));
 
-var index = path.IndexOfPoint(Vector3.zero); // Находим индекс точки с позицией [0, 0, 0].
-Debug.Log(index); // Выводим этот индекс.
+var index = path.IndexOfPoint(Vector3.zero);
+Debug.Log(index);
 
-path.RemovePoint(point); // Удаляем точку point из пути.
-path.RemovePointAt(index); // удаляем точку по индексу index.
+path.RemovePoint(point);
+path.RemovePointAt(index);
 
-Debug.Log(path.PointsCount); // Выводим оставшееся количество точек.
+Debug.Log(path.PointsCount);
 ```
 
 ![image](https://user-images.githubusercontent.com/5365111/153762902-9267d90d-bda5-49b3-ab2f-9a89e8659c11.png)
+
+# Считывание и изменение точек
+Для считывания значений точек используйте метод `PointData GetPoint(int index, bool useGlobal = true)`.  Данный метод вернет вам объект `PointData`, представляющий точку и ее направление в пути.
+
+```
+
+```
