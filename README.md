@@ -280,3 +280,26 @@ Debug.Log(segment1Length);
 * `bool RemovePoint(Point point, bool useGlobal = true)` - удаляет точку из пути. Возврашает `true` если точка была удалена.
 * `void RemovePointAt(int index)` - удаляет точку из пути по указанному индексу.
 * `void ClearPoints()` - удаляет все точки из пути.
+
+Пример использования этих методов.
+
+```
+var path = Path.Create(); // Создаем путь.
+path.AddPoint(Vector3.zero); // Добавляем точку [0, 0, 0] в конец пути
+path.AddPoint(new Vector3(1f, 0f, 0f)); // Добавляем точку [1, 0, 0] в конец пути.
+
+var point = new Point(new Vector3(2f, 0f, 0f), Quaternion.identity); // Создаем точку [2, 0, 0] с нулевым поворотом.
+
+path.InsertPoint(0, point); // Вставляем точку point в начало пути (по индексу 0). 
+Debug.Log(path.ContainsPoint(point)); // Проверяем содержит ли путь точку point.
+
+var index = path.IndexOfPoint(Vector3.zero); // Находим индекс точки с позицией [0, 0, 0].
+Debug.Log(index); // Выводим этот индекс.
+
+path.RemovePoint(point); // Удаляем точку point из пути.
+path.RemovePointAt(index); // удаляем точку по индексу index.
+
+Debug.Log(path.PointsCount); // Выводим оставшееся количество точек.
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153762902-9267d90d-bda5-49b3-ab2f-9a89e8659c11.png)
