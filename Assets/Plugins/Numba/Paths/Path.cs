@@ -289,8 +289,8 @@ namespace Paths
 
                 ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
                 path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
-                var pos = path.GetPointByIndex(0, false).Position;
-                path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointByIndex(1, false).Position));
+                var pos = path.GetPoint(0, false).Position;
+                path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPoint(1, false).Position));
             }
 
             return path;
@@ -754,6 +754,7 @@ namespace Paths
         }
         #endregion
 
+        #region Get and set point
         /// <summary>
         /// Sets the <paramref name="position"/> of the point by the <paramref name="index"/>.
         /// </summary>
@@ -819,12 +820,12 @@ namespace Paths
         }
 
         /// <summary>
-        /// Calculates and returns a point by the specified index.
+        /// Returns a point by the specified index.
         /// </summary>
         /// <param name="index">Index of the point.</param>
         /// <param name="useGlobal">Is it necessary to convert a point from local to global space?</param>
         /// <returns>Calculated point.</returns>
-        public PointData GetPointByIndex(int index, bool useGlobal = true)
+        public PointData GetPoint(int index, bool useGlobal = true)
         {
             var point = _points[WrapIndex(index)];
             var direction = _points.Count == 1 ? Vector3.zero : GetSegmentStartDirection(index);
@@ -835,6 +836,7 @@ namespace Paths
 
             return pointData;
         }
+        #endregion
 
         /// <summary>
         /// Calculates and returns a point by the specified index.<br/>
@@ -842,9 +844,9 @@ namespace Paths
         /// </summary>
         /// <param name="index">Index of the point.</param>
         /// <param name="useGlobal">Is it necessary to convert a calculated point from local space to global?</param>
-        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
+        /// <returns><inheritdoc cref="GetPoint(int, bool )"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public PointData GetPoint(int index, bool useGlobal = true)
+        public PointData Calculate(int index, bool useGlobal = true)
         {
             if (_points.Count == 0 || index < 0)
                 throw new ArgumentException("Index can't be less than 0.", nameof(index));
@@ -856,7 +858,7 @@ namespace Paths
                     throw new ArgumentException("Index can't be greater than end points count.", nameof(index));
             }
 
-            return GetPointByIndex(index, useGlobal);
+            return GetPoint(index, useGlobal);
         }
 
         /// <summary>
@@ -865,10 +867,10 @@ namespace Paths
         /// <param name="segment">On which segment do you want to calculate the point?</param>
         /// <param name="distance">At what distance from the beginning of the <paramref name="segment"/> should calculate the point?</param>
         /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
-        /// <param name="useGlobal"><inheritdoc cref="GetPoint(int, bool)" path="/param[@name='useGlobal']"/></param>
-        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
+        /// <param name="useGlobal"><inheritdoc cref="Calculate(int, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="GetPoint(int, bool )"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public PointData GetPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        public PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (_points.Count < 2)
                 throw new ArgumentException($"Path does not contain segment {segment}.", nameof(segment));
@@ -928,11 +930,11 @@ namespace Paths
             Point p0, p1, p2, p3;
 
             if (Mathf.Approximately(distance, 0f))
-                return GetPointByIndex(segment, useGlobal);
+                return GetPoint(segment, useGlobal);
             else if (Mathf.Approximately(distance, length))
             {
                 if (_looped && segment != SegmentsCount - 1 || !_looped && segment - 1 != SegmentsCount - 1)
-                    return GetPointByIndex(segment + 1, useGlobal);
+                    return GetPoint(segment + 1, useGlobal);
                 else
                 {
                     direction = GetSegmentEndDirection(segment);
@@ -992,9 +994,9 @@ namespace Paths
         /// </summary>
         /// <param name="distance">At what distance from the beginning of the path should calculate the point?</param>
         /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
-        /// <param name="useGlobal"><inheritdoc cref="GetPoint(int, bool)" path="/param[@name='useGlobal']"/></param>
-        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
-        public PointData GetPoint(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        /// <param name="useGlobal"><inheritdoc cref="Calculate(int, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="GetPoint(int, bool )"/></returns>
+        public PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (useNormalizedDistance)
                 distance *= Length;
@@ -1018,9 +1020,10 @@ namespace Paths
                 distance = GetSegmentLength(SegmentsCount - 1);
             }
 
-            return GetPoint(segment, distance, false, useGlobal);
+            return Calculate(segment, distance, false, useGlobal);
         }
 
+        #region GetEnumerator
         public IEnumerator<Point> GetEnumerator()
         {
             foreach (var point in _points)
@@ -1028,5 +1031,6 @@ namespace Paths
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        #endregion
     }
 }

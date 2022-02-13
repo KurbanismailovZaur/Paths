@@ -7,7 +7,7 @@ namespace Paths
 {
     /// <summary>
     /// Represents the point that lies on the path.<br/>
-    /// Usually this point is calculated using the <see cref="Path.GetPoint(float, bool, bool)"/> method.
+    /// Usually this point is calculated using the <see cref="Path.Calculate(float, bool, bool)"/> method.
     /// </summary>
     public struct PointData
     {
