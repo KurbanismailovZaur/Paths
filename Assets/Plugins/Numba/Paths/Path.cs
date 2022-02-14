@@ -12,7 +12,7 @@ namespace Paths
     /// Represents a path in three-dimensional space, passing through points.<br/>
     /// Points are represent by the <see cref="Point"/> type.
     /// </summary>
-    public class Path : MonoBehaviour, IEnumerable<Point>
+    public class Path : MonoBehaviour
     {
         #region State
         [SerializeField]
@@ -1093,16 +1093,6 @@ namespace Paths
 
             return Calculate(segment, distance, false, useGlobal);
         }
-        #endregion
-
-        #region GetEnumerator
-        public IEnumerator<Point> GetEnumerator()
-        {
-            foreach (var point in _points)
-                yield return point;
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         #endregion
     }
 }
