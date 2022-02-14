@@ -335,5 +335,85 @@ Debug.Log(path.PointsCount);
 Для считывания значений точек используйте метод `PointData GetPoint(int index, bool useGlobal = true)`.  Данный метод вернет вам объект `PointData`, представляющий точку и ее направление в пути.
 
 ```
+var path = Path.CreatePolygon(4, 1f);
+print(path.GetPoint(0));
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153776058-8b327be2-6cc3-4ace-9388-9a2fe348084e.png)
+
+![image](https://user-images.githubusercontent.com/5365111/153776072-0ae78175-8e6e-46a3-975a-2de7261f9718.png)
+
+Во второй строке происходит считывание значения точки 0. На рисунке видно, что направление движения от точки 0 к точке 1 (справа и ниже от нее) в глобальном пространстве равно [1, 0, -1], если это значение нормализовать, то получится [0.71, 0, -0.71], что мы и видим на втором скриншоте.
+
+Для записи точек используйте один из перегруженных вариантов метода `SetPoint`:
+* `void SetPoint(int index, float x, float y, float z, bool useGlobal = true)` - изменить позицию точки по индексу `index`.
+* `void SetPoint(int index, Vector3 position, bool useGlobal = true)` - изменить позицию точки по индексу `index`.
+* `void SetPoint(int index, Quaternion rotation, bool useGlobal = true)` - изменить поворот точки по индексу `index`.
+* `void SetPoint(int index, float x, float y, float z, Quaternion rotation, bool useGlobal = true)` - изменить позицию и поворот точки по индексу `index`.
+* `void SetPoint(int index, Vector3 position, Quaternion rotation, bool useGlobal = true)` - изменить позицию и поворот точки по индексу `index`.
+* `void SetPoint(int index, Point point, bool useGlobal = true)` - изменить точку по индексу `index`.
+
+Например
 
 ```
+var path = Path.CreatePolygon(4, 1f);
+path.SetPoint(0, 0f, 0f, 2f);
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153776394-096e93d7-6282-4971-a828-2327890a2441.png)
+
+В примере выше происходит изменение позиции точки с индексом 0 на значение [0, 0, 2f].
+
+# Вычисление точки на пути
+Используйте метод `Calculate` если вам надо вычислить точку лежащую на пути (на желтой линии). Есть несколько перегрузок этого метода.
+* `PointData Calculate(int index, bool useGlobal = true)` - вычисляет точку лежащую на пути по индексу. В отличии от `GetPoint` этот метод учитывает только те точки, которые лежат на пути (желтая линия в редакторе). С помощью параметра `useGlobal` вы можете указывать в каком пространстве вам нужно вычислить точку, если передано значение `true`, то расчет будет происходить в глобальном пространстве. 
+* `PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на указанном сегменте. Если параметр `useNormalizedDistance` равен `true`, то параметр `distance` будет использоваться как нормализованное значение (то есть от 0 до 1), иначе `distance` трактуется как метры.
+* `PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на всем пути. Параметры ведут себя также как и в предыдущем методе.
+
+К примеру, у нас есть такой путь.
+
+![Анимация](https://user-images.githubusercontent.com/5365111/153778663-0e285281-95be-4b12-84b1-fdef0b16d4fe.gif)
+
+И мы хотим получить точку, которая лежит на сегменте с индексом 1. Точка должна находиться на расстоянии 1 метра от начала сегмента. Чтоюбы понять как решить эту задачу, сначал разберемся с индексами сегментов.
+
+![image](https://user-images.githubusercontent.com/5365111/153778829-90cf2274-a1f3-49bc-bb84-0743cea5e685.png)
+
+На рисунке выше красным отмечены индексы точек, голубым - индексы сегментов. Сегменты всегда начинаются с первой точки пути (желтой точки, не белой). Заметим, что сегмент с индексом 1 находится в нижний части треугольного пути. Его начало указано зеленой стрелкой, а конец - розовой. По задаче, нам надо найти точку лежащую на пути, на расстоянии 1 метра от зеленой в сторону розовой. Для этого подойдет второй перегруженный метод `Calculate` из списка выше.
+
+```
+var data = _path.Calculate(1, 1f, false); // Вычисляем точку на сегменте с индексом 1, на расстоянии 1 метра от начала.
+
+var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
+sphere.position = data.Position;
+sphere.localScale *= 0.1f;
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153779114-fd855231-fad9-4383-b816-ac32d9ff5f07.png)
+
+Как видите точка успешно была вычислена.
+
+Если же вам надо вычислить точку не на конкретном сегменте, а в целом, на всем пути, то просто пропустите индекс сегмента в методе `Calculate`;
+
+```
+var data = _path.Calculate(1f, false); // Вычисляем точку на всем пути, на расстоянии 1 метра от начала.
+
+var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
+sphere.position = data.Position;
+sphere.localScale *= 0.1f;
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153779343-e8e415e3-c50f-4a9d-bbd2-62baff7f35f6.png)
+
+Как видите теперь точка вычисляется на всем пути. Если указанная дистанция от начала будет превышать длину пути, то точка будет ограничена на конце этого пути.
+
+# Цикл по точкам
+Чтобы создать цикл по точкам вы можете использовать свойство `PointsCount` и метод `GetPoint`.
+
+```
+for (int i = 0; i < _path.PointsCount; i++)
+  print(_path.GetPoint(i));
+```
+
+![image](https://user-images.githubusercontent.com/5365111/153781350-232b2420-7080-473e-ab39-14493810ee34.png)
+
+Ну, на этом все! Надеюсь бибдиотека `Path` окажется для вас полезной..
