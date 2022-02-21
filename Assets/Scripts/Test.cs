@@ -7,10 +7,20 @@ using UnityEngine;
 
 public class Test : MonoBehaviour
 {
+    [SerializeField]
+    private float _height;
+
+    [SerializeField]
+    private float _frequency;
+
+    [SerializeField]
+    private int _repeat;
+
+    [SerializeField]
+    private bool _startToUp;
+
     private void Start()
     {
-        var path = Path.CreatePolygon(4, 1f);
-        var data = path.GetPoint(0);
-        print(data);
+        var path = Path.CreateWave(Vector3.zero, Vector3.back, Vector3.up, _height, _frequency, _repeat, _startToUp);
     }
 }

@@ -149,7 +149,7 @@ namespace Paths
         /// <param name="sideCount">How many sides does a polygon have?</param>
         /// <param name="radius">How far away is each corner of the polygon from its center?</param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path CreatePolygon(int sideCount, float radius) => CreatePolygon(Vector3.zero, Vector3.up, sideCount, radius);
+        public static Path CreatePolygon(int sideCount, float radius) => CreatePolygon(Vector3.zero, sideCount, radius);
 
         /// <summary>
         /// <inheritdoc cref="CreatePolygon(int, float)"/>
@@ -158,18 +158,19 @@ namespace Paths
         /// <param name="sideCount"><inheritdoc cref="CreatePolygon(int, float)" path="/param[@name='sideCount']"/></param>
         /// <param name="radius"><inheritdoc cref="CreatePolygon(int, float)" path="/param[@name='radius']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path CreatePolygon(Vector3 pivotPosition, int sideCount, float radius) => CreatePolygon(pivotPosition, Vector3.up, sideCount, radius);
+        public static Path CreatePolygon(Vector3 pivotPosition, int sideCount, float radius) => CreatePolygon(pivotPosition, Vector3.up, Vector3.forward, sideCount, radius);
 
         /// <summary>
         /// <inheritdoc cref="CreatePolygon(int, float)"/>
         /// </summary>
         /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
         /// <param name="normal">Where is the face of the landfill pointing?</param>
+        /// <param name="up">Where is the top pointing?</param>
         /// <param name="sideCount"><inheritdoc cref="CreatePolygon(Vector3, int, float)" path="/param[@name='sideCount']"/></param>
         /// <param name="radius"><inheritdoc cref="CreatePolygon(Vector3, int, float)" path="/param[@name='radius']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static Path CreatePolygon(Vector3 pivotPosition, Vector3 normal, int sideCount, float radius)
+        public static Path CreatePolygon(Vector3 pivotPosition, Vector3 normal, Vector3 up, int sideCount, float radius)
         {
             if (sideCount < 3)
                 throw new ArgumentException($"Side count can't be less that 3.", nameof(sideCount));
@@ -180,7 +181,7 @@ namespace Paths
             var path = Create(pivotPosition);
             normal.Normalize();
 
-            var normalRotation = Quaternion.LookRotation(normal, normal == Vector3.up ? Vector3.forward : Vector3.up);
+            var normalRotation = Quaternion.LookRotation(normal, up);
             var deltaAngle = 360f / sideCount;
 
             for (int i = 0; i < sideCount; i++)
@@ -198,7 +199,7 @@ namespace Paths
         }
 
         /// <summary>
-        /// Creates a path that represents a two-dimensional spiral.
+        /// Creates a path that represents spiral (2D or 3D).
         /// </summary>
         /// <param name="offsetAngle">Angular offset of the beginning of the spiral</param>
         /// <param name="coils">How many turns in the coil?</param>
@@ -218,20 +219,21 @@ namespace Paths
         /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='pointsCountPerCoil']"/></param>
         /// <param name="use3D"><inheritdoc cref="CreateSpiral(float, int, float, int, bool)" path="/param[@name='pointsCountPerCoil']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false) => CreateSpiral(pivotPosition, Vector3.up, offsetAngle, coils, step, pointsCountPerCoil, use3D);
+        public static Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false) => CreateSpiral(pivotPosition, Vector3.up, Vector3.forward, offsetAngle, coils, step, pointsCountPerCoil, use3D);
 
         /// <summary>
         /// <inheritdoc cref="CreateSpiral(float, int, float, int, bool)"/>
         /// </summary>
         /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
-        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
-        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='offsetAngle']"/></param>
-        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='coils']"/></param>
-        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='step']"/></param>
-        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int)" path="/param[@name='pointsCountPerCoil']"/></param>
+        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
+        /// <param name="up">Where is the top pointing?</param>
+        /// <param name="offsetAngle"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int, bool)" path="/param[@name='offsetAngle']"/></param>
+        /// <param name="coils"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int, bool)" path="/param[@name='coils']"/></param>
+        /// <param name="step"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int, bool)" path="/param[@name='step']"/></param>
+        /// <param name="pointsCountPerCoil"><inheritdoc cref="CreateSpiral(Vector3, float, int, float, int, bool)" path="/param[@name='pointsCountPerCoil']"/></param>
         /// <returns><inheritdoc cref="Create"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)
+        public static Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, Vector3 up, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)
         {
             if (coils < 1)
                 throw new ArgumentException("Coils can't be less than 0.", nameof(coils));
@@ -245,7 +247,7 @@ namespace Paths
             var path = Create(pivotPosition);
             normal.Normalize();
 
-            var normalRotation = Quaternion.LookRotation(normal, normal == Vector3.up ? Vector3.forward : Vector3.up);
+            var normalRotation = Quaternion.LookRotation(normal, up);
 
             var deltaAngle = 360f / pointsCountPerCoil;
             var angle = -deltaAngle;
@@ -292,6 +294,165 @@ namespace Paths
                 var pos = path.GetPoint(0, false).Position;
                 path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPoint(1, false).Position));
             }
+
+            return path;
+        }
+
+        /// <summary>
+        /// Creates a path representing an arc.
+        /// </summary>
+        /// <param name="width">What width of the arc?</param>
+        /// <param name="height">What height of the arc?</param>
+        /// <param name="sideCount">How many sides does an arc have?</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path CreateArc(float width, float height, int sideCount) => CreateArc(Vector3.zero, width, height, sideCount);
+
+        /// <summary>
+        /// <inheritdoc cref="CreateArc(float, float, int)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="width"><inheritdoc cref="CreateArc(float, float, int)" path="/param[@name='width']"/></param>
+        /// <param name="height"><inheritdoc cref="CreateArc(float, float, int)" path="/param[@name='height']"/></param>
+        /// <param name="sideCount"><inheritdoc cref="CreateArc(float, float, int)" path="/param[@name='sideCount']"/></param>
+        /// <returns><inheritdoc cref="CreateArc(float, float, int)"/></returns>
+        public static Path CreateArc(Vector3 pivotPosition, float width, float height, int sideCount) => CreateArc(pivotPosition, Vector3.up, Vector3.forward, width, height, sideCount);
+
+        /// <summary>
+        /// <inheritdoc cref="CreateArc(float, float, int)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
+        /// <param name="up">Where is the top pointing?</param>
+        /// <param name="width"><inheritdoc cref="CreateArc(float, float, int)" path="/param[@name='width']"/></param>
+        /// <param name="height"><inheritdoc cref="CreateArc(float, float, int)" path="/param[@name='height']"/></param>
+        /// <param name="sideCount"><inheritdoc cref="CreateArc(float, float, int)" path="/param[@name='sideCount']"/></param>
+        /// <returns><inheritdoc cref="CreateArc(float, float, int)"/></returns>
+        public static Path CreateArc(Vector3 pivotPosition, Vector3 normal, Vector3 up, float width, float height, int sideCount)
+        {
+            if (sideCount < 3)
+                throw new ArgumentException($"Side count can't be less that 3.", nameof(sideCount));
+
+            if (width <= 0f || height <= 0f)
+                throw new ArgumentException($"Width and height must greater than 0.");
+
+            var path = Create(pivotPosition);
+
+            normal.Normalize();
+            up.Normalize();
+
+            var normalRotation = Quaternion.LookRotation(normal, up);
+            var deltaAngle = 180f / (sideCount - 1);
+
+            width = width / 2f - 1f;
+            height = height - 1f;
+
+            for (int i = -1; i <= sideCount; i++)
+            {
+                var angle = deltaAngle * i;
+
+                var vectorX = normalRotation * Vector3.right;
+                var rotatedVector = Quaternion.AngleAxis(angle, normal) * vectorX;
+                vectorX *= Vector3.Dot(rotatedVector, vectorX);
+                rotatedVector += vectorX * width;
+
+                var vectorY = normalRotation * Vector3.up;
+                vectorY *= Vector3.Dot(rotatedVector, vectorY);
+                rotatedVector += vectorY * height;
+
+                path.AddPoint(rotatedVector, false);
+            }
+
+            return path;
+        }
+
+        /// <summary>
+        /// Creates a path representing a wave.
+        /// </summary>
+        /// <param name="height">What height of the wave?</param>
+        /// <param name="frequency">Frequency of the wave.</param>
+        /// <param name="repeat">How many times need repeat wave?</param>
+        /// <param name="startToUp">Does a wave starts in up direction (<see langword="true"/>) or down (<see langword="false"/>).</param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path CreateWave(float height, float frequency, int repeat, int pointsPerSegment, bool startToUp = true) => CreateWave(Vector3.zero, height, frequency, repeat, startToUp);
+
+        /// <summary>
+        /// <inheritdoc cref="CreateWave(float, float, int, int, bool)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="height"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='height']"/></param>
+        /// <param name="frequency"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='frequency']"/></param>
+        /// <param name="repeat"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='repeat']"/></param>
+        /// <param name="startToUp"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='startToUp']"/></param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path CreateWave(Vector3 pivotPosition, float height, float frequency, int repeat, bool startToUp = true) => CreateWave(pivotPosition, Vector3.up, Vector3.forward, height, frequency, repeat, startToUp);
+
+        /// <summary>
+        /// <inheritdoc cref="CreateWave(float, float, int, int, bool)"/>
+        /// </summary>
+        /// <param name="pivotPosition"><inheritdoc cref="Create(Vector3)" path="/param[@name='pivotPosition']"/></param>
+        /// <param name="normal"><inheritdoc cref="CreatePolygon(Vector3, Vector3, Vector3, int, float)" path="/param[@name='normal']"/></param>
+        /// <param name="up">Where is the top pointing?</param>
+        /// <param name="height"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='height']"/></param>
+        /// <param name="frequency"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='frequency']"/></param>
+        /// <param name="repeat"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='repeat']"/></param>
+        /// <param name="startToUp"><inheritdoc cref="CreateWave(float, float, int, int, bool)" path="/param[@name='startToUp']"/></param>
+        /// <returns><inheritdoc cref="Create"/></returns>
+        public static Path CreateWave(Vector3 pivotPosition, Vector3 normal, Vector3 up, float height, float frequency, int repeat, bool startToUp = true)
+        {
+            if (height <= 0f)
+                throw new ArgumentException($"Height must greater than 0.", nameof(height));
+
+            if (frequency <= 0f)
+                throw new ArgumentException($"Frequency must greater than 0.", nameof(frequency));
+
+            if (repeat < 1)
+                throw new ArgumentException($"Segments count can't be less that 1.", nameof(repeat));
+
+            var path = Create(pivotPosition);
+
+            normal.Normalize();
+            up.Normalize();
+
+            var normalRotation = Quaternion.LookRotation(-normal, up);
+
+            Vector3 currentPosition;
+            float inverse;
+            Vector3 vectorToNext;
+
+            if (startToUp)
+            {
+                currentPosition = new Vector3(-1f, -1f, 0f);
+                inverse = 1f;
+                vectorToNext = new Vector3(2f, 2f);
+            }
+            else
+            {
+                currentPosition = new Vector3(-1f, 1f, 0f);
+                inverse = -1f;
+                vectorToNext = new Vector3(2f, -2f);
+            }
+
+            void AddPoint()
+            {
+                var point = currentPosition;
+                point.x = point.x / 4f / frequency;
+                point.y *= height;
+
+                point = normalRotation * point;
+                path.AddPoint(point, false);
+
+                currentPosition += vectorToNext;
+                vectorToNext.y *= -1f;
+            }
+
+            for (int i = 0; i <= repeat; i++)
+            {
+                AddPoint();
+                AddPoint();
+            }
+
+            path.InsertPoint(1, Vector3.Lerp(path.GetPoint(0, false).Position, path.GetPoint(1, false).Position, 0.5f));
+            path.InsertPoint(path.PointsCount - 1, Vector3.Lerp(path.GetPoint(path.PointsCount - 2, false).Position, path.GetPoint(path.PointsCount - 1, false).Position, 0.5f));
 
             return path;
         }
@@ -370,6 +531,17 @@ namespace Paths
         {
             var path = CreateSpiral(0f, 3, 0.3333333f, 8, true);
             path.name = "Path (Spiral3D)";
+            path.transform.SetParent(Selection.activeTransform, false);
+
+            Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
+        }
+
+        [MenuItem("GameObject/Path/Arc")]
+        private static void CreateArc()
+        {
+            var path = CreateArc(2f, 2, 8);
+            path.name = "Path (Arc)";
             path.transform.SetParent(Selection.activeTransform, false);
 
             Selection.activeObject = path;

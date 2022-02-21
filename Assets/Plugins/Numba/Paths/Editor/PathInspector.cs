@@ -432,7 +432,11 @@ namespace Paths
                 SceneView.lastActiveSceneView.Repaint();
             });
 
-            _inspector.Q<Button>("optimize-button").clicked += () => _path.Optimize();
+            _inspector.Q<Button>("optimize-button").clicked += () =>
+            {
+                _path.Optimize();
+                SceneView.lastActiveSceneView.Repaint();
+            };
 
             _selectedPointIndex = -1;
 
