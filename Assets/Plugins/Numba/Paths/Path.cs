@@ -373,7 +373,7 @@ namespace Paths
         /// <param name="repeat">How many times need repeat wave?</param>
         /// <param name="startToUp">Does a wave starts in up direction (<see langword="true"/>) or down (<see langword="false"/>).</param>
         /// <returns><inheritdoc cref="Create"/></returns>
-        public static Path CreateWave(float height, float frequency, int repeat, int pointsPerSegment, bool startToUp = true) => CreateWave(Vector3.zero, height, frequency, repeat, startToUp);
+        public static Path CreateWave(float height, float frequency, int repeat, bool startToUp = true) => CreateWave(Vector3.zero, height, frequency, repeat, startToUp);
 
         /// <summary>
         /// <inheritdoc cref="CreateWave(float, float, int, int, bool)"/>
@@ -541,6 +541,17 @@ namespace Paths
         private static void CreateArc()
         {
             var path = CreateArc(2f, 2, 8);
+            path.name = "Path (Arc)";
+            path.transform.SetParent(Selection.activeTransform, false);
+
+            Selection.activeObject = path;
+            Undo.RegisterCreatedObjectUndo(path.gameObject, "Create Path");
+        }
+
+        [MenuItem("GameObject/Path/Wave")]
+        private static void CreateWave()
+        {
+            var path = CreateWave(1f, 1f, 3);
             path.name = "Path (Arc)";
             path.transform.SetParent(Selection.activeTransform, false);
 
