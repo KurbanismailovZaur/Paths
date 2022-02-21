@@ -201,6 +201,7 @@ Paths поддерживает любую версию Unity, в которой 
 * `radius` - расстояние от центра фигуры до любого угла.
 * `pivotPosition` - позиция пути в пространстве.
 * `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
 
 К примеру
 
@@ -223,6 +224,7 @@ Paths поддерживает любую версию Unity, в которой 
 * `use3D` - нужно-ли создавать трехмерную спираль?
 * `pivotPosition` - позиция пути в пространстве.
 * `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
 
 К примеру
 
@@ -231,6 +233,49 @@ Paths поддерживает любую версию Unity, в которой 
 этот код создаст 3D-спираль со смещением 0 градусов, 3 витками, расстоянием между витками 1 метр и 8 точками на виток.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153734351-d5924f63-68ed-48f0-b492-14602f0170e6.gif)
+
+`CreateArc` создает путь-арку. Имеются 3 перегрузки:
+1. `Path CreateArc(float width, float height, int sideCount)`
+2. `Path CreateArc(Vector3 pivotPosition, float width, float height, int sideCount)`
+3. `Path CreateArc(Vector3 pivotPosition, Vector3 normal, Vector3 up, float width, float height, int sideCount)`
+
+Где:
+* `width` - ширина арки в метрах.
+* `height` - высота арки в метрах.
+* `sideCount` - количество сторон в арке (минимум 3).
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
+
+К примеру
+
+`var path = Path.CreateArc(2f, 4f, 8);`
+
+этот код создаст арку шириной 2 метра, высотой 4 метра и 8 сторонами.
+
+![image](https://user-images.githubusercontent.com/5365111/154999053-7c23e974-9e8a-4bc2-8fc1-dac70524e928.png)
+
+`CreateWave` создает путь-волну. Имеются 3 перегрузки:
+1. `Path CreateWave(float height, float frequency, int repeat, bool startToUp = true)`
+2. `Path CreateWave(Vector3 pivotPosition, float height, float frequency, int repeat, bool startToUp = true)`
+3. `Path CreateWave(Vector3 pivotPosition, Vector3 normal, Vector3 up, float height, float frequency, int repeat, bool startToUp = true)`
+
+Где:
+* `height` - высота волны в метрах.
+* `frequency` - частота волны на 1 метр.
+* `repeat` - количество повторений волны.
+* `startToUp` - в какую сторону начинается волна, вверх (true) или вниз (false).
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
+
+К примеру
+
+`var path = Path.CreateWave(1f, 2f, 3);`
+
+этот код создаст волну высотой 1 метр, частотой 2 волны на метр и повторит ее 3 раза.
+
+![image](https://user-images.githubusercontent.com/5365111/155000335-2caa21c7-7215-42b2-bafe-23f547cf1acd.png)
 
 ## Свойства пути
 * `PointsCount` - общее количество точек в пути
