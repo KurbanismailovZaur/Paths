@@ -1,291 +1,291 @@
 # Paths
-Paths is a library written in pure C# for creating and editing waypoint systems in Unity. Paths uses the Catmull-Rom curve algorithm.
+Paths - это написанная на чистом C# библиотека для создания и редактирования waypoint системы в Unity. Paths использует алгоритм построения кривых линий Кэтмулл-Рома.
 
-# Supported versions of Unity
-Paths supports any version of Unity that has support for the new UI Elements UI system.
+# Поддерживаемые версии Unity
+Paths поддерживает любую версию Unity, в которой имеется поддержка новой системы пользовательского интерфейса UI Elements.
 
-# Installation
-All you need to do is import the unity-package into your project. Technically, the Paths library is just a Plugins/Numba/Paths folder with some scripts and other files.
+# Установка
+Все что вам надо сделать это импортировать unity-пакет в свой проект. Технически библиотека Paths это всего лишь папка Plugins/Numba/Paths с несколькими скриптами и прочими файлами.
 
 ![Снимок экрана 2022-02-12 015235](https://user-images.githubusercontent.com/5365111/153681466-9dd83da4-e140-4e70-96ef-b31f6cf302e1.png)
 
-# Creating paths in the editor
-To create a path in the editor in the Hierarchy tab, call the context menu and select `Path` > `Empty`.
+# Создание путей в редакторе
+Чтобы создать путь в редакторе во вкладке иерархии вызовите контекстное меню и выберите `Path` > `Empty`.
 
 ![image](https://user-images.githubusercontent.com/5365111/153685315-3fb5a081-6824-44b3-a619-1da687b1116e.png)
 
-This will create a blank object and add the `Path` script to it. Of course, you can create a blank and add the `Path` script through the components menu manually, but a ready-made menu is more convenient for this. In addition to the empty path you can create ready-made ones (line, triangle and others) but we'll come back to them a little later.
+Это создаст объект пустышку и добавит к нему скрипт `Path`. Конечно, вы можете создать пустышку и добавить скрипт `Path` через меню компонентов вручную, однако готовое меню для этого удобней. Помимо пустого пути вы можете создавать уже готовые (линию, треугольник и прочие) но к ним мы вернемся чуть позже.
 
 # Настройка пути в редакторе
 
 ![image](https://user-images.githubusercontent.com/5365111/153685666-8199776b-3370-4ea2-9e4a-e7e364ee1d16.png)
 
-The script consists of several blocks. First of all, we are interested in the block of dots (yellow), it is currently empty. To add a point, click the `+` icon in the lower right corner of the block.
+Скрипт состоит из нескольких блоков. В первую очередь нас интересует блок точек (желтый), сейчас он пустой. Чтобы добавить точку, нажмите на значек `+` в нижнем правом углу блока.
 
 ![image](https://user-images.githubusercontent.com/5365111/153688450-ae1b4111-bb65-4e0f-a559-f62ffe189704.png)
 
 ![image](https://user-images.githubusercontent.com/5365111/153688478-89de4df6-0b94-483e-bf60-d1108a5d052b.png)
 
-As you can see there is now one point in the path. The yellow number on the left side is the position of the point in the whole list. Then there are two `Vector3` fields. The upper field is the position of the point, and the lower field is the rotation in the form of Euler angles. The position and rotation of the point are calculated relative to the game object to which the `Path` script is attached. So now point 0 coincides with the position of the parent object. This is also visible in the scene window.
+Как видите теперь в пути есть одна точка. Желтый номер в левой части - это позиция точки во всем списке. Далее расположены два `Vector3` поля. Верхнее поле это позиция точки, а нижнее - поворот в виде углов Эйлера. Позиция и поворот точки расчитываются относительно игрового объекта к которому прикреплен скрипт `Path`. Поэтому сейчас точка 0 совпадает с позицией родительского объекта. Это также заметно в окне сцены.
 
 ![image](https://user-images.githubusercontent.com/5365111/153688932-b5dd0650-15ac-4470-9a82-c5baf5dee3a4.png)
 
-The `pivot` text indicates the position of the parent object. Change the point position in the inspector to [1, 0, 0] and switch the scene window camera to top view to make it easier to observe. You will see that the point and the pivot of the object are now in different places.
+Текст `pivot` указывает на позицию родительского объекта. Измените позицию точки в инспекторе на [1, 0, 0] и переключите камеру окна сцены на вид сверху, чтобы было проще наблюдать. Вы увидите что точка и пивот объекта теперь в разных местах.
 
 ![image](https://user-images.githubusercontent.com/5365111/153689117-4ec00285-84a5-4275-93c1-abc3d41ead80.png)
 
-By moving, rotating and scaling the object to which the `Path` script is attached, you also move all its points.
+Перемещая, вращая и масштабируя объект к которому прикреплен скрипт `Path` вы также перемещаете и все его точки.
 
-Now add one more point by pressing the `+` button near the point in the inspector window.
+Теперь добавьте еще одну точку, для этого нажмите кнопку `+` около точки в окне инспектора.
 
 ![image](https://user-images.githubusercontent.com/5365111/153689293-378724e5-ff04-42d5-a48b-3c48b9a05ddb.png)
 
-This will create another point right after the current one. Set it to position [2, 0, 0]. Our path now looks like this.
+Это создаст еще одну точку сразу после текущей. Установите ее на позицию [2, 0, 0]. Теперь наш путь выглядит так.
 
 ![image](https://user-images.githubusercontent.com/5365111/153689827-6b6aba7b-ae19-4ed2-a591-6070f78ce809.png)
 
 ![image](https://user-images.githubusercontent.com/5365111/153689368-6d743e0f-5051-4c63-a12a-78fc4f482fc4.png)
 
-The yellow line between the two points is the path line. Later, we will figure out how to make an object move along this line. To delete a point, you can click the `-` button in the inspector window opposite to the point you want.
+Желтая линия между двумя точками - это линия пути. Позже мы разберемся как сделать так, чтобы по этой линии двигался объект. Для удаления точки вы можете щелкнуть на кнопку `-` в окне инспектора напротив нужной вам точки.
 
-To see the point number in the scene window, just put the cursor on the desired point.
+Чтобы увидеть номер точки в окне сцены просто наведите курсор на нужную точку.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153711348-8571e2de-0238-4826-9b00-b9bb5bb929c7.gif)
 
-As you can see, navigating with points in the scene window is not difficult. You can also add a new point directly in the scene window. To do that, press the blue `+` button. This will create a new point at that location and connect it to the previous one.
+Как видите ориентироваться с точками в окне сцены не сложно. Вы также можете добавить новую точку прямо в окне сцены. Для этого нажмите на синию кнопку `+`. Это создаст в этом месте новую точку и сцепит ее с предыдущей.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153711404-50486301-9e77-40b1-a12b-df3b1fd77975.gif)
 
-Now the path looks a little unclear, let's move the point 1 up. You can do this directly in the scene window, to do it, click on point 1 to select it, turn on the move tool (hotkey W) and move the point up to position 1 on the z-axis (use CTRL to snap).
+Теперь путь выглядит немного непонятно, давайте переместим точку 1 наверх. Вы можете сделать это прямо в окне сцены, для этого щелкните по точке 1 чтобы выделить ее, включите инструмент перемещения (горячая клавиша W) и переместите точку вверх на позицию 1 по оси z (используйте CTRL для привязки).
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153711478-4ec60731-3d82-4de0-a601-89fe72e3a299.gif)
 
-When a point is selected, a quick edit box for that point appears at the bottom right of the Stage window.
+Когда какая-либо точка выделена, в нижней правой части окна сцены появляется блок быстрого редактирования этой точки.
 
 ![image](https://user-images.githubusercontent.com/5365111/153690277-9edc8aed-b1a6-4e51-a980-06320e633e7a.png)
 
-This block essentially just duplicates the point fields that are displayed in the inspector window. You can use it, or you can simply drag the point to the desired location using the gizmo tools.
+Этот блок по сути просто дублирует поля точки, которые отображаются в окне инспектора. Вы можете использовать его, а можете просто перетягивать точку в нужное место используя гизмо инструменты.
 
-You can add new points between the existing ones by moving the cursor over the small white circle between the two yellow points and a blue `+` button will appear, click on it to add a point.
+Можно добавлять новые точку между уже существующими, для этого наведите курсор на маленький белый круг между двумя желтыми точками, появится синяя кнопка `+`, нажмите на нее чтобы добавить точку.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153711633-97db945b-2cb3-4d99-8320-9da2e1648ba8.gif)
 
-Now the path consists of 4 dots. About the difference between the white dots and yellow dots, as well as between the dotted line and yellow line we will talk a little later, now we just need to learn how to edit the lines.
+Теперь путь состоит из 4 точек. О том в чем разница между белыми точками и желтыми, а также между пунктирной линией и желтой поговорим чуть позже, сейчас надо просто научиться редактировать линии.
 
-You can also delete unselected points directly in the scene window, move the cursor just above the point itself, a delete point button with an `x` sign will appear and <b> double click</b> on it to remove the point.
+Вы также можете удалять не выделенные точки прямо в окне сцены, для этого наведите курсор чуть выше самой точки, появится кнопка удаления точки со знаком `x`, <b>дважды</b> щелкнув по ней вы удалите точку.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153711702-13261a59-5607-4069-8ffd-4b79e1d49e6b.gif)
 
-Undo the last action (deleting a point) by pressing CTRL+Z. `Paths` fully supports the undo/redo system built into Unity.
+Отмените последне действие (удаление точки) нажав CTRL + Z. `Paths` полностью поддерживает систему отмены/повтора действий встроенную в Unity.
 
-Working with points in the scene window is quite comfortable, but some parameters are only configurable in the inspector. The first block of the `Path` script in the inspector has 2 fields: `Resolution` and `Looped`.
+Работать с точками в окне сцены довольно комфортно, однако некоторые параметры настраиваются только в инспекторе. Первый блок скрипта `Path` в инспекторе имеет 2 поля: `Resolution` и `Looped`.
 
-The `Resolution` - path resolution, that is, this parameter is responsible for how many broken lines should be created between two points. When `Resolution` is 1, one line is drawn between two points, so the whole path is a broken line. Increasing the resolution value will make the line curve. The higher the resolution, the smoother the line becomes.
+`Resolution` - разрешение пути, то есть этот параметр отвечает за то сколько ломаных линий надо создавать между двумя точками. Когда `Resolution` равен 1, то между двумя точками рисуется одна линия, таким образом весь пути представляет собой ломанную линию. Увеличение значения разрешения сделает линию кривой. Чем выше разрешение, тем более сглаженной становится линия.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153711869-76eb0441-5f23-412f-b9f4-0a919ddcb059.gif)
 
-The second field, `Looped`, is responsible for the looped path.
+Второе поле - `Looped`, отвечает за зацикленность пути.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712020-503390df-3acf-4e1b-bb0d-5f61d5d49858.gif)
 
-You can find the optimal resolution for the path by clicking the `Optimize` button under the `Resolution` field.
+Вы можете найти оптимальное разрешение для пути нажав на кнопку `Optimize` под полем `Resolution`.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153728274-5de834d5-33bd-4513-8df1-854f57a5931d.gif)
 
-Immediately below the `Looped` field there is information about how long the path is (yellow lines).
+Сразу под полем `Looped` находится информация о том какой длины получается проходимый путь (желтые линии).
 
-You can swap path points.
+Вы можете менять местами точки пути.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712175-c1069643-892a-476f-a6e9-ba220b45162f.gif)
 
-When the path is fully configured, you can see how the object will move along it. To do this, open the debug block (green), the scene will show the green edges of the imaginary cube, which will be at point 0. You can move the `Position` slider to specify on what percentage of the path you want this cube to be located.
+Когда путь полностью настроен, вы можете посмотреть как по нему будет двигаться объект. Для этого раскройте блок отладки (зеленый), в сцене появятся зеленые грани воображаемого куба, который будет находится в точке 0. Вы можете двигать слайдер `Position` чтобы указать на каком проценте пути вы хотите чтобы был расположен этот куб.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712337-4ec402a1-ac6e-4fea-a59b-af8f0dc7cba9.gif)
 
-By default, when debugging, the face of the cube is always directed according to the path vector.
+По умолчанию при отладке лицевая часть куба всегда направлена в соответствии с вектором движения по пути.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712454-033c6449-50cb-4e5c-b937-d6dd52532cc6.gif)
 
-However, you can change this behavior by turning off the `Use Path Direction` field. In this case the cube will match the rotations of the points. In our example, we didn't change the rotations of the points (only their positions), so the rotations of all the points coincide with the global axes.
+Однако вы можете изменить это поведение отключив поле `Use Path Direction`. В таком случае куб будет соответствовать поворотам точек. В нашем примере мы не меняли повороты точек (только их позиции), поэтому повороты всех точек совпадают с глобальными осями.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712556-4536672a-1f01-4556-9803-b5dd226ab5c1.gif)
 
-To work with point rotations, turn on the `rotate` tool (hotkey E). You can set the desired point rotations in the points list in the Inspector.
+Для работы с поворотами точек включите инструмент `Вращение` (горячая клавиша E). Вы можете выставить нужные повороты точек в списке точек в инспекторе.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712646-53b180d4-af42-410d-ba00-bbc2ea529518.gif)
 
-Or rotate the point with the gizmo in the scene window.
+Либо вращать точку с помощью гизмо в окне сцены.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712685-6efdb3f4-251c-4886-97a5-70a01d39f7e6.gif)
 
-To make it easier to understand the rotation of a point, the local axes of the point are displayed inside the `rotation` tool gizmo. Once all the desired points are rotated, you can debug the path, i.e. see how the special cube will behave as it traverses that path. Passing through the points, the rotation of the cube will correspond to the rotations of these points.
+Чтобы легче было понимать поворот точки, внутри гизмо инструмента `Вращение` отображаются локальные оси точки. После того как все нужные точки повернуты вы можете отладить путь, то есть увидеть как будет вести себе специальный куб при прохождении этого пути. Проходя по точками поворот куба будет соответствовать поворотам этих точек.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153712804-f524a98c-b5f5-4c25-b359-37e3f4497c5d.gif)
 
-# Creating ready-made path templates
+# Создание готовых шаблонов путей
 
-In addition to an empty path, you can create paths with points already in them. To do this, use the context menu `Path` > `...` in the hierarchy window. For example, if you want to create a circle, use `Path` > `Circle`.
+Помимо пустого пути вы можете создавать пути с уже существующими в них точками. Для этого используйте контекстное меню `Path` > `...` в окне иерархии. Например, если вы хотите создать круг, то используйте `Path` > `Circle`.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153728474-61701a8e-5d4e-41f6-af56-db82294fb3fe.gif)
 
-Or for example, you want a 3D spiral.
+Или к примеру вы хотите 3D-спираль.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153728561-cbd99b0a-cdad-42b8-bb1c-4905597e1bd5.gif)
 
-# Path special cases
-Now that you know how to control lines in the editor, it is necessary to deal with special cases of path construction, namely when the path consists of 0, 1, 2, 3 and more than 3 points. The point is that the Catmull-Rome algorithm knows how to work with at least 4 points, with the first and last being the controlling ones, and those in the middle - between them will draw the line.
+# Частные случаи пути
+Теперь, когда вы знаете как управлять линиями в редакторе, надо разобраться с частными случаями построения пути, а именно, когда путь состоит из 0, 1, 2, 3 и более чем 3 точек. Все дело в том, что алгоритм Кэтмулл-Рома умеет работать минимум с 4 точками, причем первая и последняя являются контроллирующими, а те что посередине - между ними и будет рисовать линия.
 
-## Path of 0 points.
-In this case the path is nothing. Calling methods (we'll talk about them later) to retrieve data on the path will result in an exception.
+## Путь из 0 точек.
+В этом случае путь - это пустышка. Вызов методов (о них чуть позже поговорим) для получения данных на пути будет приводить к исключению.
 
-## Path from 1 point
-A path from 1 point will always return a value at that point when calling methods to get data on the path, whether the path is looped or not. This single point is used as 4 points in this location.
+## Путь из 1 точки
+Путь из 1 точки будет всегда возвращать значение в этой точке при вызове методов получения данных на пути, причем неважно путь зациклен или нет. Эта единственная точка используется как 4 точки в этом месте.
 
 ![image](https://user-images.githubusercontent.com/5365111/153750540-c06ebac6-1505-4fc8-8103-5e3b91e0fba6.png)
 
-## Path from 2 points
-The Catmull-Rom algorithm for 2 points can only construct a straight line, so regardless of the value of the `Resolution` field between two points will always be a straight line. If the path is looped, it will consist of two segments, the first from point 0 to point 1, and the second vice versa. This is because each point is both a controlling point and an end point (that is, the total will be 4 points).
+## Путь из 2 точек
+Алгоритм Кэтмулл-Рома для 2 точек может построить только прямую линию, поэтому независимо от значения поля `Resolution` между двумя точками будет всегда прямая линия. Если путь зациклен, то он будет состоять из двух сегментов, первый от точки 0 к точке 1, а второнй - наоборот. Это потому, что каждая точка является и контроллирующей и конечной (то есть в сумме получется 4 точки).
 
 ![image](https://user-images.githubusercontent.com/5365111/153750549-b70cb34f-c045-42d3-8f8b-3fb260a1d481.png)
 
-## Path of 3 points
-Three points allow you to describe one segment of a curved line. Point 0 in this case is the controlling point for points 1 and 2, and points 1 and 2 are the end points, i.e. the ones between which the path is drawn. The `Resolution` field affects the smoothness of this line. The first point is both the controlling and the end point, which again together with the other two gives 4 points.
+## Путь из 3 точек
+Три точки позволяют описать один сегмент кривой линии. Точка 0 в этом случае является контроллирующей для точек 1 и 2, а точки 1 и 2 - конечными, то есть теми между которых рисуется путь. Поле `Resolution` влияет на сглаженность это линии. Первая точка является одновременно и контроллирующей и конечной, что опять же в сумме с двумя другими дает 4 точки.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153750700-d6534df8-02e4-432e-a269-114493e0e008.gif)
 
-At the same time the path can be looped.
+При этом путь может быть зацикленным.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153750812-fc1a34d7-f7b7-48a3-98ff-aabe4a0c10e6.gif)
 
-# A path of 4 or more points
-When a path consists of 4 or more points, the first point (with the index 0) and the last one are controlling points and all other points are end points. You can control the line starting from point 1 separately thanks to the control point 0. It is the same with the penultimate point. The controlling points are drawn in white and connected by a white dotted line. These points do not participate in the traversed path, but only influence it. Moreover, with 4 points you can achieve the same result as with 1, 2 or 3 points.
+# Путь из 4 и более точек
+Когда путь состоит из 4 и более точек, то первая точка (с индексом 0) и последняя являются контроллирующими, а все остальные - конечными. Вы можете отдельно контролировать линию исходящую из точки 1 благодаря контроллирующей точке 0. То же самое и с предпоследней точкой. Контроллирующие точки рисуются белым цветом, а их связь - белой пунктирной линией. Эти точки не участвуют в проходимом пути, а лишь вляют на него. Более того, с помощью 4 точек вы можете добиться того же результат что и с помощью 1, 2 или 3 точек.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153751542-b05c03c8-2767-48b5-990f-f5b8b33a81d5.gif)
 
-And this is what a path of 7 points might look like.
+А вот так может выглядеть путь из 7 точек.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153751688-05087dbf-e8b8-4745-a1a5-6c8c41ffdc34.gif)
 
 # API
-To work with paths via code, a convenient API has been developed.
+Для работы с путями через код было разработано удобное для этого API.
 
-## Path creation
-To create a path use the static method `Path.Create()`. It will create a game object named "Path" at position zero, add a `Path` component to it and return it as a result. This method has 4 overloads:
+## Создание пути
+Чтобы создать путь используйте статический метод `Path.Create()`. Он создаст игровой объект с именем "Path" в нулевой позиции, добавит компонент `Path` к нему и вернет его как результат. Данный метод имеет 4 перегрузки:
 1. `Path Create()`
 2. `Path Create(Vector3 pivotPosition)`
 3. `Path Create(Vector3 pivotPosition, bool useGlobal, params Vector3[] points)`
 4. `Path Create(Vector3 pivotPosition, bool useGlobal, IEnumerable<Vector3> points)`
 
-Where:
-* `pivotPosition` - path position.
-* `useGlobal` - specifies whether the points (parameter `points`) are transmitted in global (`true`) or local (`false`) space.
-* `points` - a collection of points.
+Где:
+* `pivotPosition` - позиция пути.
+* `useGlobal` - указывает передаются-ли точки (параметр `points`) в глобальном (`true`) или локальном (`false`) пространстве.
+* `points` - коллекция точек.
 
-For example:
+К примеру
 
 `var path = Path.Create(new Vector3(1f, 0f, 1f), true, Vector3.zero, new Vector3(1f, 0f, 0f));` 
 
-will create a new path located at position [1, 0, 1] with two points at the global positions [0, 0, 0] and [1, 0, 0].
+создаст новый путь расположенный на позиции [1, 0, 1] с двумя точками на глобальных позициях [0, 0, 0] и [1, 0, 0].
 
 ![image](https://user-images.githubusercontent.com/5365111/153730736-846724a8-d2ac-4251-abce-ff301618465d.png)
 
-You can also use the `Path.CreatePolygon` and `Path.CreateSpiral` methods.
+Вы также можете использовать методы `Path.CreatePolygon` и `Path.CreateSpiral`.
 
-The `CreatePolygon` creates a polygon path (triangle, rhombus, pentagon and others). There are 3 overloads available:
+`CreatePolygon` создает путь-многогранник (треугольник, ромб, пятиугольник и прочие). Имеются 3 перегрузки:
 1. `Path CreatePolygon(int sideCount, float radius)`
 2. `Path CreatePolygon(Vector3 pivotPosition, int sideCount, float radius)`
 3. `Path CreatePolygon(Vector3 pivotPosition, Vector3 normal, int sideCount, float radius)`
 
-Where:
-* `sideCount` - the number of faces.
-* `radius` - distance from the center of the figure to any corner.
-* `pivotPosition` - position of the path in space.
-* `normal` - the normal of the figure, that is a vector representing where the face of the figure is directed in space.
-* `up` - a vector representing the direction of the face of the figure when rotated towards `normal`.
+Где:
+* `sideCount` - количество граней.
+* `radius` - расстояние от центра фигуры до любого угла.
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
 
-For example:
+К примеру
 
 `var path = Path.CreatePolygon(5, 1f);`
 
-this code will create a pentagon with a radius of 1 meter.
+этот код создаст пятиугольник с радиусом 1 метр.
 
 ![image](https://user-images.githubusercontent.com/5365111/153734111-973d5c08-c279-4a5f-b13d-a2a1bed63ad6.png)
 
-`CreateSpiral` creates a path-spiral (Archimedean). There are 3 overloads:
+`CreateSpiral` создает путь-спираль (Архимедову). Имеются 3 перегрузки:
 1. `Path CreateSpiral(float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)`
 2. `Path CreateSpiral(Vector3 pivotPosition, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)`
 3. `Path CreateSpiral(Vector3 pivotPosition, Vector3 normal, float offsetAngle, int coils, float step, int pointsCountPerCoil, bool use3D = false)`
 
-Where:
-* `offsetAngle` - angular displacement (in degrees) of the helix, i.e. rotation of the helix around its center.
-* `coils` - number of coils of the spiral.
-* `step` - spiral pitch, i.e. the distance between two coils.
-* `PointsCountPerCoil` - number of generated points per coil.
-* `use3D` - Is it necessary to create a three-dimensional spiral?
-* `pivotPosition` - position of the path in space.
-* `normal` - the normal of the figure, that is, a vector representing where the face of the figure is directed in space.
-* `up` - a vector representing the direction of the face of the figure when rotated towards `normal`.
+Где:
+* `offsetAngle` - угловое смещение (в градусах) спирали, то есть поворот спирали вокруг ее центра.
+* `coils` - количество витков спирали.
+* `step` - шаг спирали, то есть расстояние между двумя витками.
+* `pointsCountPerCoil` - количество генерируемых точек на один виток.
+* `use3D` - нужно-ли создавать трехмерную спираль?
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
 
-For example:
+К примеру
 
 `var path = Path.CreateSpiral(0f, 3, 1f, 8, true);`
 
-this code will create a 3D spiral with 0 degree offset, 3 turns, 1 meter distance between turns, and 8 points per turn.
+этот код создаст 3D-спираль со смещением 0 градусов, 3 витками, расстоянием между витками 1 метр и 8 точками на виток.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153734351-d5924f63-68ed-48f0-b492-14602f0170e6.gif)
 
-The `CreateArc` creates a path-arc. There are 3 overloads:
+`CreateArc` создает путь-арку. Имеются 3 перегрузки:
 1. `Path CreateArc(float width, float height, int sideCount)`
 2. `Path CreateArc(Vector3 pivotPosition, float width, float height, int sideCount)`
 3. `Path CreateArc(Vector3 pivotPosition, Vector3 normal, Vector3 up, float width, float height, int sideCount)`
 
-Where:
-* `width` - width of the arch in meters.
-* `height` - height of the arch in meters.
-* `sideCount` - number of sides in the arch (minimum 3).
-* `pivotPosition` - track position in space.
-* `normal` - the normal of the figure, that is a vector representing where the front side of the figure is directed in space.
-* `up` - a vector representing the direction of the face of the figure when rotated towards `normal`.
+Где:
+* `width` - ширина арки в метрах.
+* `height` - высота арки в метрах.
+* `sideCount` - количество сторон в арке (минимум 3).
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
 
-For example:
+К примеру
 
 `var path = Path.CreateArc(2f, 4f, 8);`
 
-this code will create an arch 2 meters wide, 4 meters high and 8 sides.
+этот код создаст арку шириной 2 метра, высотой 4 метра и 8 сторонами.
 
 ![image](https://user-images.githubusercontent.com/5365111/154999053-7c23e974-9e8a-4bc2-8fc1-dac70524e928.png)
 
-The `CreateWave` creates a path-wave. There are 3 overloads available:
+`CreateWave` создает путь-волну. Имеются 3 перегрузки:
 1. `Path CreateWave(float height, float frequency, int repeat, bool startToUp = true)`
 2. `Path CreateWave(Vector3 pivotPosition, float height, float frequency, int repeat, bool startToUp = true)`
 3. `Path CreateWave(Vector3 pivotPosition, Vector3 normal, Vector3 up, float height, float frequency, int repeat, bool startToUp = true)`
 
-Where:
-* `height` - wave height in meters.
-* `frequency` - frequency of the wave per 1 meter.
-* `repeat` - the number of repetitions of the wave.
-* `startToUp` - in which direction the wave starts, up (true) or down (false).
-* `pivotPosition` - position of the path in space.
-* `normal` - the normal of the figure, i.e. a vector representing where the face of the figure is directed in space.
-* `up` - a vector representing the direction of the face of the figure when rotated towards `normal`.
+Где:
+* `height` - высота волны в метрах.
+* `frequency` - частота волны на 1 метр.
+* `repeat` - количество повторений волны.
+* `startToUp` - в какую сторону начинается волна, вверх (true) или вниз (false).
+* `pivotPosition` - позиция пути в пространстве.
+* `normal` - нормаль фигуры, то есть вектор представляющий куда направлена лицевая сторона фигуры в пространстве.
+* `up` - вектор представляющий направление макушки при повороте в сторону `normal`.
 
-For example:
+К примеру
 
 `var path = Path.CreateWave(1f, 2f, 3);`
 
-this code will create a wave with a height of 1 meter, a frequency of 2 waves per meter and repeat it 3 times.
+этот код создаст волну высотой 1 метр, частотой 2 волны на метр и повторит ее 3 раза.
 
 ![image](https://user-images.githubusercontent.com/5365111/155000335-2caa21c7-7215-42b2-bafe-23f547cf1acd.png)
 
-## Path properties
-* `PointsCount` - total number of points in the path
-* `SegmentsCount` - number of segments in the path. A segment is a curve between two points. In a looped path, the number of segments is always equal to the number of points.
-* `Resolution` - path resolution. Affects all segments.
-* `Looped` - is the path looped?
-* `Length` - total length of the path (sum of lengths of all segments).
+## Свойства пути
+* `PointsCount` - общее количество точек в пути
+* `SegmentsCount` - количество сегментов в пути. Сегмент это кривая между двумя точками. В зацикленном пути количество сегментов всегда равно количеству точек.
+* `Resolution` - разрешение пути. Влияет на все сегменты.
+* `Looped` - зациклен-ли путь?
+* `Length` - общая длина пути (сумма длин всех сегментов).
 
-## Path optimization
-You can use the `Optimize` method to optimize a path. The algorithm will find the most appropriate value for the `Resolution` field, such that the path looks moderately smoothed.
+## Оптимизация пути
+Вы можете использовать метод `Optimize` для оптимизации пути. Алгоритм подберет наиболее подходящее значение для поля `Resolution`, такое чтобы путь выглядел умеренно сглаженным.
 
 ```
 var path = Path.CreateSpiral(0f, 3, 1f, 8, true);
@@ -294,8 +294,8 @@ path.Optimize();
 
 ![image](https://user-images.githubusercontent.com/5365111/153754814-5c0a2354-f013-4377-a93b-743b75bf3e8f.png)
 
-## Segment length
-Use the `float GetSegmentLength(int segment)` method to get the length of a particular path segment.
+## Длина сегмента
+Используйте метод `float GetSegmentLength(int segment)` чтобы получить длину конкретного сегмента пути.
 
 ```
 var path = Path.CreatePolygon(4, 1f);
@@ -305,52 +305,52 @@ Debug.Log(segment1Length);
 
 ![image](https://user-images.githubusercontent.com/5365111/153755006-a85e047e-3f0d-456b-b118-b0ebdf7e74db.png)
 
-In the figure above, the indexes of the segments formed by the dots are shown in red. Below you can see the result of calling the `GetSegmentLength` method.
+На рисунке выше красным обозначены индексы сегментов формируемых точками. Ниже вы можете увидеть результат вызова метода `GetSegmentLength`.
 
 ![image](https://user-images.githubusercontent.com/5365111/153754945-07821be5-35f7-4292-895c-2f69021d2094.png)
 
-# Point type
-To work with points through code, there is a data type Point. It is a structure with properties `Position` and `Rotation`. You can create a point using the default constructor or an overloaded version that takes the position and rotation of the point in space. All points inside a `Path` object are calculated locally, but as you'll see later, almost all methods allow you to work with points globally as well if you want to.
+# Тип Point
+Для работы с точками через код существует тип данных Point. Он представляет из себя структуру со свойствами `Position` и `Rotation`. Вы можете создать точку используя конструктор по умолчанию или перегруженную версию, которая принимает позицию и поворот точки в пространстве. Все точки внутри объекта класса `Path` рассчитываются локально, однако как вы увидите позже, почти все методы позволяют работать с точками и глобально, если вы этого захотите.
 
 ```
-var point1 = new Point(); // Create a point at position [0, 0, 0] and with zero rotation.
-point1.Position = new Vector3(1f, 2f, 3f); // Set the position of this point to [1, 2, 3].
-point1.Rotation = Quaternion.Euler(0f, 90f, 0f); // Set the rotation of this point in the direction of the global X axis
+var point1 = new Point(); // Создаем точку в позиции [0, 0, 0] и с нулевым поворотом.
+point1.Position = new Vector3(1f, 2f, 3f); // Устанавливаем позицию этой точки в [1, 2, 3].
+point1.Rotation = Quaternion.Euler(0f, 90f, 0f); // Устанавливаем поворот этой точки в направлении глобальной оси X
 
-var point2 = new Point(1f, 2f, 3f, Quaternion.Euler(0f, 90f, 0f)); // Do the same thing, but through the constructor.
+var point2 = new Point(1f, 2f, 3f, Quaternion.Euler(0f, 90f, 0f)); // Делаем то же самое, но через конструктор.
 ```
 
-# PointData type
-This type is an extended version of the `Point` structure, which in addition to the `Position` and `Rotation` properties contains also `Direction`. The `Direction` is the direction in space that corresponds to the movement along the path at the point `Position`, that is, it is a vector representing the direction of movement along the path. You don't have to create `PointData` structure objects manually, instead the methods that we'll explore later in this documentation will calculate this direction themselves and return `PointData` to you instead of `Point` where it makes sense.
+# Тип PointData
+Данный тип представляет собой расширенную версию структуры `Point`, которая помимо свойств `Position` и `Rotation` содержит еще и `Direction`. `Direction` это направление в пространстве, которое соответствует движению по пути в точке `Position`, то есть это вектор представляющий направление движения по пути. Вам не придется создавать объекты структуры `PointData` вручную, вместо этого методы которые мы изучим чуть ниже в этой документации сами будут вычислять это направление и возвращать вам `PointData` вместо `Point` там, где это имеет смысл.
 
-## Operations on points
-### Adding to the end
-* `void AddPoint(float x, float y, float z, bool useGlobal = true)` - creates a new point with specified position and adds it to the end of the path.
-* `void AddPoint(Vector3 position, bool useGlobal = true)` - creates a new point with the specified position and adds it to the end of the path.
-* `void AddPoint(Point point, bool useGlobal = true)` - adds a point to the end of the path.
-### Insertion by index
-* `void InsertPoint(int index, float x, float y, float z, bool useGlobal = true)` - creates a new point with the specified position and inserts it into the path at the specified index. 
-* `void InsertPoint(int index, Vector3 position, bool useGlobal = true)` - creates a new point with the specified position and inserts it into the path at the specified index. 
-* `void InsertPoint(int index, Point point, bool useGlobal = true)` - inserts a point into the path at the specified index. 
-### check for content
-* `bool ContainsPoint(float x, float y, float z, bool useGlobal = true)` - checks if there is a point with the specified position in the path.
-* `bool ContainsPoint(Vector3 position, bool useGlobal = true)` - checks if there is a point with the specified position in the path.
-* `bool ContainsPoint(Point point, bool useGlobal = true)` - checks if there is a point in the path.
-### Index search
-* `int IndexOfPoint(float x, float y, float z, bool useGlobal = true)` - finds point with specified position in the path and returns its index
-* `int IndexOfPoint(Vector3 position, bool useGlobal = true)` - finds point with specified position in the path and returns its index
-* `int IndexOfPoint(Point point, bool useGlobal = true)` - finds a point in the path and returns its index
-### Remove from the path
-* `bool RemovePoint(float x, float y, float z, bool useGlobal = true)` - removes a point with the specified position from the path. Returns `true` if the point has been removed.
-* `bool RemovePoint(Vector3 position, bool useGlobal = true)` - removes the point with the specified position from the path. Returns `true` if the point has been removed.
-* `bool RemovePoint(Point point, bool useGlobal = true)` - removes the point from the path. Returns `true` if point has been deleted.
-### Remove by index
-* `void RemovePointAt(int index)` - removes a point from the path at the specified index.
-### Complete clearing.
-* `void ClearPoints()` - removes all points from the path.
+# Операции над точкам
+### Добавление в конец
+* `void AddPoint(float x, float y, float z, bool useGlobal = true)` - создает новую точку с указанной позицией и добавляет ее в конец пути.
+* `void AddPoint(Vector3 position, bool useGlobal = true)` - создает новую точку с указанной позицией и добавляет ее в конец пути.
+* `void AddPoint(Point point, bool useGlobal = true)` - добавляет точку в конец пути.
+### Вставка по индексу
+* `void InsertPoint(int index, float x, float y, float z, bool useGlobal = true)` - создает новую точку с указанной позицией и вставляет ее в путь по указанному индексу. 
+* `void InsertPoint(int index, Vector3 position, bool useGlobal = true)` - создает новую точку с указанной позицией и вставляет ее в путь по указанному индексу. 
+* `void InsertPoint(int index, Point point, bool useGlobal = true)` - вставляет точку в путь по указанному индексу. 
+### проверка на содержание
+* `bool ContainsPoint(float x, float y, float z, bool useGlobal = true)` - проверяет есть-ли точка с указанной позицией в пути.
+* `bool ContainsPoint(Vector3 position, bool useGlobal = true)` - проверяет есть-ли точка с указанной позицией в пути.
+* `bool ContainsPoint(Point point, bool useGlobal = true)` - проверяет есть-ли точка в пути.
+### Поиск индекса
+* `int IndexOfPoint(float x, float y, float z, bool useGlobal = true)` - находит точку с указанной позицией в пути и возвращает ее индекс
+* `int IndexOfPoint(Vector3 position, bool useGlobal = true)` - находит точку с указанной позицией в пути и возвращает ее индекс
+* `int IndexOfPoint(Point point, bool useGlobal = true)` - находит точку в пути и возвращает ее индекс
+### Удаление из пути
+* `bool RemovePoint(float x, float y, float z, bool useGlobal = true)` - удаляет точку с указанной позицией из пути. Возврашает `true` если точка была удалена.
+* `bool RemovePoint(Vector3 position, bool useGlobal = true)` - удаляет точку с указанной позицией из пути. Возврашает `true` если точка была удалена.
+* `bool RemovePoint(Point point, bool useGlobal = true)` - удаляет точку из пути. Возврашает `true` если точка была удалена.
+### Удаление по индексу
+* `void RemovePointAt(int index)` - удаляет точку из пути по указанному индексу.
+### Полная очистка
+* `void ClearPoints()` - удаляет все точки из пути.
 
-### Example of using these methods.
-Almost all of the methods described above have a `useGlobal` parameter, which tells the method in which space (local? or global?) the position and/or rotation are passed to it. A value of `true` means that the data is passed in global space.
+### Пример использования этих методов.
+Почти все методы описанные выше имеют параметр `useGlobal`, который сообщает методу в каком пространстве (в локальном? или в глобальном?) в него передаются позиция и/или поворот. Значение `true` означает что данные передаются в глобальном пространстве.
 
 ```
 var path = Path.Create();
@@ -373,8 +373,8 @@ Debug.Log(path.PointsCount);
 
 ![image](https://user-images.githubusercontent.com/5365111/153762902-9267d90d-bda5-49b3-ab2f-9a89e8659c11.png)
 
-# Read and change points
-To read point values, use the `PointData GetPoint(int index, bool useGlobal = true)` method.  This method will return you a `PointData` object representing the point and its direction in the path.
+# Считывание и изменение точек
+Для считывания значений точек используйте метод `PointData GetPoint(int index, bool useGlobal = true)`.  Данный метод вернет вам объект `PointData`, представляющий точку и ее направление в пути.
 
 ```
 var path = Path.CreatePolygon(4, 1f);
@@ -385,17 +385,17 @@ print(path.GetPoint(0));
 
 ![image](https://user-images.githubusercontent.com/5365111/153776072-0ae78175-8e6e-46a3-975a-2de7261f9718.png)
 
-The second line reads the value of point 0. The figure shows that the direction of movement from point 0 to point 1 (to the right and below it) in global space is [1, 0, -1], if we normalize this value, we get [0.71, 0, -0.71], as we see in the 'Debug' tab in the second screenshot.
+Во второй строке происходит считывание значения точки 0. На рисунке видно, что направление движения от точки 0 к точке 1 (справа и ниже от нее) в глобальном пространстве равно [1, 0, -1], если это значение нормализовать, то получится [0.71, 0, -0.71], что мы и видим во вкладке 'Debug' на втором скриншоте.
 
-Use one of the overloaded variants of the `SetPoint` method to write points:
-* `void SetPoint(int index, float x, float y, float z, bool useGlobal = true)` - change point position by index `index`.
-* `void SetPoint(int index, Vector3 position, bool useGlobal = true)` - change point position by index `index`.
-* `void SetPoint(int index, Quaternion rotation, bool useGlobal = true)` - change point rotation by index `index`.
-* `void SetPoint(int index, float x, float y, float z, Quaternion rotation, bool useGlobal = true)` - change position and rotation of the point by index `index`.
-* `void SetPoint(int index, Vector3 position, Quaternion rotation, bool useGlobal = true)` - change position and rotation of the point by index `index`.
-* ``void SetPoint(int index, Point point, bool useGlobal = true)` - change point by index `index`.
+Для записи точек используйте один из перегруженных вариантов метода `SetPoint`:
+* `void SetPoint(int index, float x, float y, float z, bool useGlobal = true)` - изменить позицию точки по индексу `index`.
+* `void SetPoint(int index, Vector3 position, bool useGlobal = true)` - изменить позицию точки по индексу `index`.
+* `void SetPoint(int index, Quaternion rotation, bool useGlobal = true)` - изменить поворот точки по индексу `index`.
+* `void SetPoint(int index, float x, float y, float z, Quaternion rotation, bool useGlobal = true)` - изменить позицию и поворот точки по индексу `index`.
+* `void SetPoint(int index, Vector3 position, Quaternion rotation, bool useGlobal = true)` - изменить позицию и поворот точки по индексу `index`.
+* `void SetPoint(int index, Point point, bool useGlobal = true)` - изменить точку по индексу `index`.
 
-For example:
+Например
 
 ```
 var path = Path.CreatePolygon(4, 1f);
@@ -404,26 +404,26 @@ path.SetPoint(0, 0f, 0f, 2f);
 
 ![image](https://user-images.githubusercontent.com/5365111/153776394-096e93d7-6282-4971-a828-2327890a2441.png)
 
-This changes the position of the point with index 0 to [0, 0, 2f].
+Тут происходит изменение позиции точки с индексом 0 на значение [0, 0, 2f].
 
-# Calculate a point on a path
-Use the `Calculate` method if you need to calculate a point on a path (on the yellow line). There are several overloads of this method.
-* `PointData Calculate(int index, bool useGlobal = true)` - calculates the point lying on the path by the index. Unlike the `GetPoint` method, this method takes into account only those points that lie on the path (the yellow line in the editor). You can use the `useGlobal` parameter to specify in which space you want to calculate the point; if `true` is passed, the calculation will take place in the global space. 
-* `PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - calculates the point on the specified segment. If the `useNormalizedDistance` parameter is `true`, then the `distance` parameter will be used as a normalized value (that is, from 0 to 1), otherwise `distance` is treated as meters.
-* `PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - calculates the point on the whole path. The parameters behave the same as in the previous method.
+# Вычисление точки на пути
+Используйте метод `Calculate` если вам надо вычислить точку лежащую на пути (на желтой линии). Есть несколько перегрузок этого метода.
+* `PointData Calculate(int index, bool useGlobal = true)` - вычисляет точку лежащую на пути по индексу. В отличии от `GetPoint` этот метод учитывает только те точки, которые лежат на пути (желтая линия в редакторе). С помощью параметра `useGlobal` вы можете указывать в каком пространстве вам нужно вычислить точку, если передано значение `true`, то расчет будет происходить в глобальном пространстве. 
+* `PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на указанном сегменте. Если параметр `useNormalizedDistance` равен `true`, то параметр `distance` будет использоваться как нормализованное значение (то есть от 0 до 1), иначе `distance` трактуется как метры.
+* `PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на всем пути. Параметры ведут себя также как и в предыдущем методе.
 
-For example, we have this way.
+К примеру, у нас есть такой путь.
 
 ![Анимация](https://user-images.githubusercontent.com/5365111/153778663-0e285281-95be-4b12-84b1-fdef0b16d4fe.gif)
 
-And we want to get a point that lies on a segment with the index 1. The point must be at a distance of 1 meter from the beginning of the segment. To understand how to solve this problem, let's first understand the segment indices.
+И мы хотим получить точку, которая лежит на сегменте с индексом 1. Точка должна находиться на расстоянии 1 метра от начала сегмента. Чтоюбы понять как решить эту задачу, сначала разберемся с индексами сегментов.
 
 ![image](https://user-images.githubusercontent.com/5365111/153778829-90cf2274-a1f3-49bc-bb84-0743cea5e685.png)
 
-In the figure above, point indices are marked in red, and segment indices are marked in blue. Segments always start at the first point of the path (the yellow point, not the white one). Note that the segment with index 1 is at the bottom of the triangular path. Its beginning is indicated by a green arrow, and its end by a pink one. According to the problem, we need to find a point lying on the path at a distance of 1 meter from the green toward the pink. The second overloaded method `Calculate` from the list above is suitable for this purpose.
+На рисунке выше красным отмечены индексы точек, голубым - индексы сегментов. Сегменты всегда начинаются с первой точки пути (желтой точки, не белой). Заметим, что сегмент с индексом 1 находится в нижней части треугольного пути. Его начало указано зеленой стрелкой, а конец - розовой. По задаче, нам надо найти точку лежащую на пути, на расстоянии 1 метра от зеленой в сторону розовой. Для этого подойдет второй перегруженный метод `Calculate` из списка выше.
 
 ```
-var data = _path.Calculate(1, 1f, false); // Calculate a point on the segment with the index 1, at a distance of 1 meter from the beginning.
+var data = _path.Calculate(1, 1f, false); // Вычисляем точку на сегменте с индексом 1, на расстоянии 1 метра от начала.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
 sphere.position = data.Position;
@@ -432,12 +432,12 @@ sphere.localScale *= 0.1f;
 
 ![image](https://user-images.githubusercontent.com/5365111/153779114-fd855231-fad9-4383-b816-ac32d9ff5f07.png)
 
-As you can see, the point has been successfully calculated.
+Как видите точка успешно была вычислена.
 
-If you need to calculate a point not on a particular segment, but on the whole path, just skip the segment index in the `Calculate` method;
+Если же вам надо вычислить точку не на конкретном сегменте, а в целом, на всем пути, то просто пропустите индекс сегмента в методе `Calculate`;
 
 ```
-var data = _path.Calculate(1f, false); // Calculate the point on the entire path, at a distance of 1 meter from the beginning.
+var data = _path.Calculate(1f, false); // Вычисляем точку на всем пути, на расстоянии 1 метра от начала.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
 sphere.position = data.Position;
@@ -446,10 +446,10 @@ sphere.localScale *= 0.1f;
 
 ![image](https://user-images.githubusercontent.com/5365111/153779343-e8e415e3-c50f-4a9d-bbd2-62baff7f35f6.png)
 
-As you see now the point is calculated on the whole path. If the specified distance from the beginning is greater than the length of the path, the point will be bounded at the end of that path.
+Как видите теперь точка вычисляется на всем пути. Если указанная дистанция от начала будет превышать длину пути, то точка будет ограничена на конце этого пути.
 
-# Point Cycle
-To create a point cycle you can use the `PointsCount` property and the `GetPoint` method.
+# Цикл по точкам
+Чтобы создать цикл по точкам вы можете использовать свойство `PointsCount` и метод `GetPoint`.
 
 ```
 for (int i = 0; i < _path.PointsCount; i++)
@@ -458,4 +458,4 @@ for (int i = 0; i < _path.PointsCount; i++)
 
 ![image](https://user-images.githubusercontent.com/5365111/153781350-232b2420-7080-473e-ab39-14493810ee34.png)
 
-Well, that's all for now! We hope you will find the PATH bibliography helpful. Good luck!
+Ну, на этом все! Надеемся что бибдиотека `Path` окажется для вас полезной. Удачи!
