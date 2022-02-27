@@ -16,7 +16,7 @@ To create a path in the editor in the Hierarchy tab, call the context menu and s
 
 This will create a blank object and add the `Path` script to it. Of course, you can create a blank and add the `Path` script through the components menu manually, but a ready-made menu is more convenient for this. In addition to the empty path you can create ready-made ones (line, triangle and others) but we'll come back to them a little later.
 
-# Настройка пути в редакторе
+# Setting the path in the editor
 
 ![image](https://user-images.githubusercontent.com/5365111/153685666-8199776b-3370-4ea2-9e4a-e7e364ee1d16.png)
 
