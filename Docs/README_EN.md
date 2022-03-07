@@ -7,7 +7,7 @@ Paths supports any version of Unity that has support for the new UI Elements UI 
 # Installation
 All you need to do is import the unity-package into your project. Technically, the Paths library is just a Plugins/Numba/Paths folder with some scripts and other files.
 
-![Снимок экрана 2022-02-12 015235](https://user-images.githubusercontent.com/5365111/153681466-9dd83da4-e140-4e70-96ef-b31f6cf302e1.png)
+![image](https://user-images.githubusercontent.com/5365111/156949364-5cec6850-9301-41ad-95de-d3cec5615080.png)
 
 # Creating paths in the editor
 To create a path in the editor in the Hierarchy tab, call the context menu and select `Path` > `Empty`.
@@ -167,7 +167,7 @@ And this is what a path of 7 points might look like.
 ![Анимация](https://user-images.githubusercontent.com/5365111/153751688-05087dbf-e8b8-4745-a1a5-6c8c41ffdc34.gif)
 
 # API
-To work with paths via code, a convenient API has been developed.
+To work with paths via code, a convenient API has been developed. To access the necessary classes use the namespace `Redcode.Paths`.
 
 ## Path creation
 To create a path use the static method `Path.Create()`. It will create a game object named "Path" at position zero, add a `Path` component to it and return it as a result. This method has 4 overloads:
