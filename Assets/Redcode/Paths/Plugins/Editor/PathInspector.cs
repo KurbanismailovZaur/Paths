@@ -1,18 +1,16 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Paths
+namespace Redcode.Paths.Editor
 {
     [CustomEditor(typeof(Path))]
-    public class PathInspector : Editor
+    public class PathInspector : UnityEditor.Editor
     {
         private class PointsBinding : IBinding
         {
@@ -166,16 +164,16 @@ namespace Paths
 
         private void LoadResources()
         {
-            _skin = Resources.Load<GUISkin>("Numba/Paths/Skin");
+            _skin = Resources.Load<GUISkin>("Redcode/Paths/Skin");
 
-            _textures.Add("yellow circle", Resources.Load<Texture>("Numba/Paths/Textures/YellowCircle"));
-            _textures.Add("dotted circle", Resources.Load<Texture>("Numba/Paths/Textures/DottedCircle"));
-            _textures.Add("black circle", Resources.Load<Texture>("Numba/Paths/Textures/BlackCircle"));
-            _textures.Add("white circle", Resources.Load<Texture>("Numba/Paths/Textures/WhiteCircle"));
-            _textures.Add("red circle", Resources.Load<Texture>("Numba/Paths/Textures/RedCircle"));
-            _textures.Add("blue circle", Resources.Load<Texture>("Numba/Paths/Textures/BlueCircle"));
-            _textures.Add("white cross", Resources.Load<Texture>("Numba/Paths/Textures/WhiteCross"));
-            _textures.Add("red rect", Resources.Load<Texture>("Numba/Paths/Textures/RedRect"));
+            _textures.Add("yellow circle", Resources.Load<Texture>("Redcode/Paths/Textures/YellowCircle"));
+            _textures.Add("dotted circle", Resources.Load<Texture>("Redcode/Paths/Textures/DottedCircle"));
+            _textures.Add("black circle", Resources.Load<Texture>("Redcode/Paths/Textures/BlackCircle"));
+            _textures.Add("white circle", Resources.Load<Texture>("Redcode/Paths/Textures/WhiteCircle"));
+            _textures.Add("red circle", Resources.Load<Texture>("Redcode/Paths/Textures/RedCircle"));
+            _textures.Add("blue circle", Resources.Load<Texture>("Redcode/Paths/Textures/BlueCircle"));
+            _textures.Add("white cross", Resources.Load<Texture>("Redcode/Paths/Textures/WhiteCross"));
+            _textures.Add("red rect", Resources.Load<Texture>("Redcode/Paths/Textures/RedRect"));
         }
 
         #region Add and remove

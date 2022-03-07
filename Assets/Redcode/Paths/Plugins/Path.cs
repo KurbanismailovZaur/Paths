@@ -1,12 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Paths
+namespace Redcode.Paths
 {
     /// <summary>
     /// Represents a path in three-dimensional space, passing through points.<br/>
@@ -416,19 +413,16 @@ namespace Paths
             var normalRotation = Quaternion.LookRotation(-normal, up);
 
             Vector3 currentPosition;
-            float inverse;
             Vector3 vectorToNext;
 
             if (startToUp)
             {
                 currentPosition = new Vector3(-1f, -1f, 0f);
-                inverse = 1f;
                 vectorToNext = new Vector3(2f, 2f);
             }
             else
             {
                 currentPosition = new Vector3(-1f, 1f, 0f);
-                inverse = -1f;
                 vectorToNext = new Vector3(2f, -2f);
             }
 

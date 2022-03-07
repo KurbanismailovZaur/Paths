@@ -1,8 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace Paths.Demo
+namespace Redcode.Paths.Demo
 {
     public class PathCreate : MonoBehaviour
     {

@@ -1,9 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using System.Reflection;
 using UnityEngine;
 
-namespace Paths
+namespace Redcode.Paths
 {
     /// <summary>
     /// Represents the point that lies on the path.<br/>

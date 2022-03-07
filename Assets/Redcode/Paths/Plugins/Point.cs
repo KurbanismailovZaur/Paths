@@ -1,9 +1,7 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-namespace Paths
+namespace Redcode.Paths
 {
     /// <summary>
     /// The point through which the <see cref="Path"/> passes.
