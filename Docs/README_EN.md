@@ -2,7 +2,7 @@
 Paths is a library written in pure C# for creating and editing waypoint systems in Unity. Paths uses the Catmull-Rom curve algorithm.
 
 # Supported versions of Unity
-Paths supports any version of Unity that has support for the new UI Elements UI system.
+This Asset supports Unity version from 2021.2 and above.
 
 # Installation
 All you need to do is import the unity-package into your project. Technically, the Paths library is just a Plugins/Numba/Paths folder with some scripts and other files.
