@@ -773,24 +773,30 @@ namespace Redcode.Paths.Editor
         private void DrawAdjacentAddButton(Vector3 position, int insertTo)
         {
             GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
-            if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(position), Vector3.zero)))
+            if (!GeometryUtility.TestPlanesAABB(_planes, new Bounds(position, Vector3.zero)))
                 return;
 
+            var screenPos = GetPointPositionInSceneView(position);
+
+            static Rect GetPointRectInSceneView(Vector3 screenPos, float size) => new Rect(screenPos.x - size / 2f, screenPos.y - size / 2f, size, size);
+            var pointRect6 = GetPointRectInSceneView(screenPos, 6f);
+            var pointRect24 = GetPointRectInSceneView(screenPos, 24f);
+
             Handles.BeginGUI();
-            GUI.DrawTexture(GetPointRectInSceneView(position, 6f), _textures["white circle"]);
+            GUI.DrawTexture(pointRect6, _textures["white circle"]);
             Handles.EndGUI();
 
             if (Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(position)) > 20f)
                 return;
 
             Handles.BeginGUI();
-            GUI.DrawTexture(GetPointRectInSceneView(position, 24f), _textures["blue circle"]);
+            GUI.DrawTexture(pointRect24, _textures["blue circle"]);
 
-            var labelRect = GetPointRectInSceneView(position, 24f);
+            var labelRect = pointRect24;
             labelRect.y -= 2f;
             GUI.Label(labelRect, "+", _skin.customStyles[5]);
 
-            if (GUI.Button(GetPointRectInSceneView(position, 24f), "", _skin.button))
+            if (GUI.Button(pointRect24, "", _skin.button))
             {
                 _pointsToAdd.Add(() =>
                 {
@@ -899,6 +905,7 @@ namespace Redcode.Paths.Editor
 
         private void DrawManyPoints()
         {
+            #region Convert points
             Span<Point> points = stackalloc Point[_path.PointsCount];
             Span<Point> localPoints = stackalloc Point[_path.PointsCount];
 
@@ -907,7 +914,9 @@ namespace Redcode.Paths.Editor
                 points[i] = GetPathPoint(i);
                 localPoints[i] = GetPathPoint(i, false);
             }
+            #endregion
 
+            #region Draw lines
             for (int i = 0; i < points.Length - 3; i++)
                 DrawCatmullRomLine(points[i].Position, points[i + 1].Position, points[i + 2].Position, points[i + 3].Position, Color.yellow);
 
@@ -922,19 +931,20 @@ namespace Redcode.Paths.Editor
                 DrawLine(points[points.Length - 2].Position, points[points.Length - 1].Position, Color.white, true);
                 DrawLine(points[0].Position, points[1].Position, Color.white, true);
             }
+            #endregion
 
             DrawRoot();
 
+            #region Optimized draw last add button
             var averageDis = 0f;
             for (int i = 0; i < points.Length - 1; i++)
                 averageDis += Vector3.Distance(points[i].Position, points[i + 1].Position);
 
             averageDis /= points.Length - 1;
 
-            #region Draw last add button optimized
             var direction = (localPoints[points.Length - 1].Position - localPoints[points.Length - 2].Position).normalized;
-
             direction *= averageDis;
+
             var localPos = localPoints[_path.PointsCount - 1].Position + direction;
 
             DrawLine(points[_path.PointsCount - 1].Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
@@ -964,22 +974,35 @@ namespace Redcode.Paths.Editor
                 var needDrawRemoveButton = false;
 
                 var point = localPoints[number];
-                var svRect = GetPointRectInSceneView(point.Position, 1f, true);
 
                 GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
                 if (_selectedPointIndex != number && !GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(point.Position), Vector3.zero)))
                     return;
 
+                Rect GetPointRectInSceneView(Vector3 screenPos, float size)
+                {
+                    return new Rect(screenPos.x - size / 2f, screenPos.y - size / 2f, size, size);
+                }
+
+                var screenPos = GetPointPositionInSceneView(point.Position, true);
+
+                var pointRectSource = GetPointRectInSceneView(screenPos, 0f);
+                var pointRect8 = GetPointRectInSceneView(screenPos, 8f);
+                var pointRect12 = GetPointRectInSceneView(screenPos, 12f);
+                var pointRect16 = GetPointRectInSceneView(screenPos, 16f);
+                var pointRect24 = GetPointRectInSceneView(screenPos, 24f);
+                var pointRect36 = GetPointRectInSceneView(screenPos, 36f);
+
                 Handles.BeginGUI();
 
                 if (_selectedPointIndex != number)
                 {
-                    removeRect = GetPointRectInSceneView(point.Position, 16f, true);
+                    removeRect = pointRect16;
                     removeRect.y -= isControl ? 30f : 24f;
 
                     if (needDrawRemoveButton = Vector2.Distance(Event.current.mousePosition, removeRect.center) <= 20f)
                     {
-                        var pointCenter = GetPointRectInSceneView(point.Position, 24f, true).center;
+                        var pointCenter = pointRect24.center;
                         var endCenter = removeRect.center;
                         endCenter.x -= 1f;
 
@@ -991,19 +1014,19 @@ namespace Redcode.Paths.Editor
                 var isCursorNearPoint = Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(point.Position, true)) <= 20f;
 
                 if (!isCursorNearPoint)
-                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 12f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+                    GUI.DrawTexture(pointRect12, drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
                 else
-                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+                    GUI.DrawTexture(pointRect24, drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
 
                 if (isControl)
-                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 36f, true), _textures["dotted circle"]);
+                    GUI.DrawTexture(pointRect36, _textures["dotted circle"]);
 
                 if (drawBlackDot)
-                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 8f, true), _textures["black circle"]);
+                    GUI.DrawTexture(pointRect8, _textures["black circle"]);
 
                 if (drawLabel && isCursorNearPoint)
                 {
-                    var labelRect = GetPointRectInSceneView(point.Position, 24f, true);
+                    var labelRect = pointRect24;
                     if (number.ToString().Length != 2)
                         labelRect.x += 1;
 
@@ -1011,7 +1034,7 @@ namespace Redcode.Paths.Editor
 
                 }
 
-                if (_selectedPointIndex != number && GUI.Button(GetPointRectInSceneView(point.Position, 24f, true), "", _skin.button))
+                if (_selectedPointIndex != number && GUI.Button(pointRect24, "", _skin.button))
                     SelectPointInListView(number);
 
                 if (_selectedPointIndex != number && needDrawRemoveButton)
@@ -1067,7 +1090,7 @@ namespace Redcode.Paths.Editor
                 }
             }
 
-            for (int i = 1; i < _path.PointsCount - 2; i++)
+            for (int i = 1; i < localPoints.Length - 2; i++)
             {
                 DrawPointOptimized(localPoints, i, false, false, true);
                 DrawAdjacentAddButton(GetPathPoint(i - 1, 0.5f).Position, _path.Looped ? i : i + 1);
