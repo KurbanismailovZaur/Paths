@@ -442,7 +442,7 @@ MonoBehaviour:
   - _position: {x: -0.55979353, y: 0.5912247, z: -0.5597921}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.83333325, y: 0.6230508, z: 0.000001141477}
+  - _position: {x: -0.83333325, y: 0.6230508, z: 0.0000011473894}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
   _segmentsLengths:
@@ -466,7 +466,7 @@ MonoBehaviour:
   - 0.54003346
   - 0.57247007
   - 0.6049218
-  - 0.6693705
+  - 0.66937053
   - 1.0507596
   _segmentCalculatorIndex: 3
   _resolution: 13
