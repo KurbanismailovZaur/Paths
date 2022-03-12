@@ -806,15 +806,11 @@ namespace Redcode.Paths.Editor
             SceneView.lastActiveSceneView.Repaint();
         }
 
-        private void DrawLastAddButton()
+        private void DrawLastAddButton(float averageDistance)
         {
             var direction = (GetPathPoint(_path.PointsCount - 1, false).Position - GetPathPoint(_path.PointsCount - 2, false).Position).normalized;
 
-            var averageDistance = 0f;
-            for (int i = 0; i < _path.PointsCount - 1; i++)
-                averageDistance += Vector3.Distance(GetPathPoint(i, false).Position, GetPathPoint(i + 1, false).Position);
-
-            direction *= averageDistance / (_path.PointsCount - 1);
+            direction *= averageDistance;
             var localPos = GetPathPoint(_path.PointsCount - 1, false).Position + direction;
 
             DrawLine(GetPathPoint(_path.PointsCount - 1).Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
@@ -852,7 +848,7 @@ namespace Redcode.Paths.Editor
             DrawRoot();
             DrawPoint(0, false, false, true);
             DrawAdjacentAddButton(GetPathPoint(0, 0.5f).Position, 1);
-            DrawLastAddButton();
+            DrawLastAddButton(Vector3.Distance(GetPathPoint(0).Position, GetPathPoint(1).Position));
             DrawPoint(1, false, false, true);
         }
 
@@ -877,12 +873,16 @@ namespace Redcode.Paths.Editor
 
             DrawRoot();
 
+            var dis0 = Vector3.Distance(GetPathPoint(0).Position, GetPathPoint(1).Position);
+            var dis1 = Vector3.Distance(GetPathPoint(1).Position, GetPathPoint(2).Position);
+            var averageDis = (dis0 + dis1) / 2f;
+
             if (!_path.Looped)
             {
                 DrawPoint(0, true, false, true);
                 DrawPoint(1, false, false, true);
                 DrawAdjacentAddButton(GetPathPoint(0, 0.5f).Position, 2);
-                DrawLastAddButton();
+                DrawLastAddButton(averageDis);
                 DrawPoint(2, false, false, true);
             }
             else
@@ -891,7 +891,7 @@ namespace Redcode.Paths.Editor
                 DrawAdjacentAddButton(GetPathPoint(0, 0.5f).Position, 1);
                 DrawPoint(1, false, false, true);
                 DrawAdjacentAddButton(GetPathPoint(1, 0.5f).Position, 2);
-                DrawLastAddButton();
+                DrawLastAddButton(averageDis);
                 DrawPoint(2, false, false, true);
                 DrawAdjacentAddButton(GetPathPoint(2, 0.5f).Position, 3);
             }
@@ -899,46 +899,195 @@ namespace Redcode.Paths.Editor
 
         private void DrawManyPoints()
         {
-            for (int i = 0; i < _path.PointsCount - 3; i++)
-                DrawCatmullRomLine(GetPathPoint(i).Position, GetPathPoint(i + 1).Position, GetPathPoint(i + 2).Position, GetPathPoint(i + 3).Position, Color.yellow);
+            Span<Point> points = stackalloc Point[_path.PointsCount];
+            Span<Point> localPoints = stackalloc Point[_path.PointsCount];
+
+            for (int i = 0; i < _path.PointsCount; i++)
+            {
+                points[i] = GetPathPoint(i);
+                localPoints[i] = GetPathPoint(i, false);
+            }
+
+            for (int i = 0; i < points.Length - 3; i++)
+                DrawCatmullRomLine(points[i].Position, points[i + 1].Position, points[i + 2].Position, points[i + 3].Position, Color.yellow);
 
             if (_path.Looped)
             {
-                DrawCatmullRomLine(GetPathPoint(_path.PointsCount - 3).Position, GetPathPoint(_path.PointsCount - 2).Position, GetPathPoint(_path.PointsCount - 1).Position, GetPathPoint(0).Position, Color.yellow);
-                DrawCatmullRomLine(GetPathPoint(_path.PointsCount - 2).Position, GetPathPoint(_path.PointsCount - 1).Position, GetPathPoint(0).Position, GetPathPoint(1).Position, Color.yellow);
-                DrawCatmullRomLine(GetPathPoint(_path.PointsCount - 1).Position, GetPathPoint(0).Position, GetPathPoint(1).Position, GetPathPoint(2).Position, Color.yellow);
+                DrawCatmullRomLine(points[points.Length - 3].Position, points[points.Length - 2].Position, points[points.Length - 1].Position, points[0].Position, Color.yellow);
+                DrawCatmullRomLine(points[points.Length - 2].Position, points[points.Length - 1].Position, points[0].Position, points[1].Position, Color.yellow);
+                DrawCatmullRomLine(points[points.Length - 1].Position, points[0].Position, points[1].Position, points[2].Position, Color.yellow);
             }
             else
             {
-                DrawLine(GetPathPoint(_path.PointsCount - 2).Position, GetPathPoint(_path.PointsCount - 1).Position, Color.white, true);
-                DrawLine(GetPathPoint(0).Position, GetPathPoint(1).Position, Color.white, true);
+                DrawLine(points[points.Length - 2].Position, points[points.Length - 1].Position, Color.white, true);
+                DrawLine(points[0].Position, points[1].Position, Color.white, true);
             }
 
-
             DrawRoot();
-            DrawLastAddButton();
+
+            var averageDis = 0f;
+            for (int i = 0; i < points.Length - 1; i++)
+                averageDis += Vector3.Distance(points[i].Position, points[i + 1].Position);
+
+            averageDis /= points.Length - 1;
+
+            #region Draw last add button optimized
+            var direction = (localPoints[points.Length - 1].Position - localPoints[points.Length - 2].Position).normalized;
+
+            direction *= averageDis;
+            var localPos = localPoints[_path.PointsCount - 1].Position + direction;
+
+            DrawLine(points[_path.PointsCount - 1].Position, TransformPoint(localPos), new Color32(72, 126, 214, 255), true);
+
+            GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
+            if (GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(localPos), Vector3.zero)))
+            {
+                Handles.BeginGUI();
+                GUI.DrawTexture(GetPointRectInSceneView(localPos, 24f, true), _textures["blue circle"]);
+
+                var labelRect = GetPointRectInSceneView(localPos, 24f, true);
+                labelRect.y -= 2f;
+                GUI.Label(labelRect, "+", _skin.customStyles[5]);
+
+                if (GUI.Button(GetPointRectInSceneView(localPos, 24f, true), "", _skin.button))
+                    _pointsToAdd.Add(() => InsertElement(_path.PointsCount, new Point(localPos, GetPathPoint(_path.PointsCount - 1).Rotation)));
+
+                Handles.EndGUI();
+
+                SceneView.lastActiveSceneView.Repaint();
+            }
+            #endregion
+
+            void DrawPointOptimized(Span<Point> localPoints, int number, bool isControl, bool drawBlackDot, bool drawLabel, bool drawYellowCircle = true)
+            {
+                var removeRect = Rect.zero;
+                var needDrawRemoveButton = false;
+
+                var point = localPoints[number];
+                var svRect = GetPointRectInSceneView(point.Position, 1f, true);
+
+                GeometryUtility.CalculateFrustumPlanes(SceneView.lastActiveSceneView.camera, _planes);
+                if (_selectedPointIndex != number && !GeometryUtility.TestPlanesAABB(_planes, new Bounds(TransformPoint(point.Position), Vector3.zero)))
+                    return;
+
+                Handles.BeginGUI();
+
+                if (_selectedPointIndex != number)
+                {
+                    removeRect = GetPointRectInSceneView(point.Position, 16f, true);
+                    removeRect.y -= isControl ? 30f : 24f;
+
+                    if (needDrawRemoveButton = Vector2.Distance(Event.current.mousePosition, removeRect.center) <= 20f)
+                    {
+                        var pointCenter = GetPointRectInSceneView(point.Position, 24f, true).center;
+                        var endCenter = removeRect.center;
+                        endCenter.x -= 1f;
+
+                        var lineRect = new Rect(endCenter, new Vector2(4f, pointCenter.y - endCenter.y));
+                        GUI.DrawTexture(lineRect, _textures["red rect"]);
+                    }
+                }
+
+                var isCursorNearPoint = Vector2.Distance(Event.current.mousePosition, GetPointPositionInSceneView(point.Position, true)) <= 20f;
+
+                if (!isCursorNearPoint)
+                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 12f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+                else
+                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 24f, true), drawYellowCircle ? _textures["yellow circle"] : _textures["white circle"]);
+
+                if (isControl)
+                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 36f, true), _textures["dotted circle"]);
+
+                if (drawBlackDot)
+                    GUI.DrawTexture(GetPointRectInSceneView(point.Position, 8f, true), _textures["black circle"]);
+
+                if (drawLabel && isCursorNearPoint)
+                {
+                    var labelRect = GetPointRectInSceneView(point.Position, 24f, true);
+                    if (number.ToString().Length != 2)
+                        labelRect.x += 1;
+
+                    GUI.Label(labelRect, number.ToString(), number < 100 ? _skin.label : _skin.customStyles[6]);
+
+                }
+
+                if (_selectedPointIndex != number && GUI.Button(GetPointRectInSceneView(point.Position, 24f, true), "", _skin.button))
+                    SelectPointInListView(number);
+
+                if (_selectedPointIndex != number && needDrawRemoveButton)
+                {
+                    GUI.DrawTexture(removeRect, _textures["red circle"]);
+
+                    var crossRect = new Rect(removeRect.x + 4f, removeRect.y + 4f, 8f, 8f);
+                    GUI.DrawTexture(crossRect, _textures["white cross"]);
+
+                    if (GUI.Button(removeRect, "", _skin.button))
+                    {
+                        if (EditorApplication.timeSinceStartup - _lastClickTime > 0.3f)
+                            _lastClickTime = EditorApplication.timeSinceStartup;
+                        else
+                        {
+                            _pointsToRemove.Add(number);
+                            _lastClickTime = 0d;
+                        }
+                    }
+
+                    SceneView.lastActiveSceneView.Repaint();
+                }
+
+                Handles.EndGUI();
+
+                if (_selectedPointIndex == number)
+                {
+                    if (Tools.current == Tool.Move)
+                    {
+                        var newPos = _path.transform.InverseTransformPoint(Handles.PositionHandle(TransformPoint(point.Position), Quaternion.identity));
+                        var distance = Vector3.Distance(newPos, point.Position);
+
+                        if (Mathf.Approximately(distance, 0f))
+                            return;
+
+                        Undo.RecordObject(_path, null);
+                        _path.SetPoint(number, newPos, false);
+                        Undo.SetCurrentGroupName($"Path Point {number} Position Changed To {newPos}");
+                    }
+                    else if (Tools.current == Tool.Rotate)
+                    {
+                        var rot = TransformRotation(point.Rotation);
+                        var newRot = Handles.RotationHandle(rot, TransformPoint(point.Position));
+                        var angle = Quaternion.Angle(rot, newRot);
+
+                        if (Mathf.Approximately(angle, 0f))
+                            return;
+
+                        Undo.RecordObject(_path, null);
+                        _path.SetPoint(number, newRot, true);
+                        Undo.SetCurrentGroupName($"Path Point {number} Rotation Changed To {newRot}");
+                    }
+                }
+            }
 
             for (int i = 1; i < _path.PointsCount - 2; i++)
             {
-                DrawPoint(i, false, false, true);
+                DrawPointOptimized(localPoints, i, false, false, true);
                 DrawAdjacentAddButton(GetPathPoint(i - 1, 0.5f).Position, _path.Looped ? i : i + 1);
             }
 
-            DrawPoint(_path.PointsCount - 2, false, false, true);
+            DrawPointOptimized(localPoints, _path.PointsCount - 2, false, false, true);
 
             if (_path.Looped)
             {
-                DrawPoint(0, false, false, true);
+                DrawPointOptimized(localPoints, 0, false, false, true);
 
                 for (int i = 3; i >= 1; i--)
                     DrawAdjacentAddButton(GetPathPoint(_path.PointsCount - i, 0.5f).Position, _path.PointsCount - i + 1);
 
-                DrawPoint(_path.PointsCount - 1, false, false, true);
+                DrawPointOptimized(localPoints, _path.PointsCount - 1, false, false, true);
             }
             else
             {
-                DrawPoint(0, false, false, true, false);
-                DrawPoint(_path.PointsCount - 1, false, false, true, false);
+                DrawPointOptimized(localPoints, 0, false, false, true, false);
+                DrawPointOptimized(localPoints, _path.PointsCount - 1, false, false, true, false);
             }
         }
         #endregion
