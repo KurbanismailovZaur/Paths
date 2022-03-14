@@ -76,14 +76,14 @@ namespace Redcode.Paths.Editor
 
         private Point GetPathPoint(int index, bool useGlobal = true)
         {
-            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPoint" && m.GetParameters().Length == 2);
+            var method = _path.GetType().GetMethods().Single(m => m.Name == "GetPointByIndex" && m.GetParameters().Length == 2);
             return (PointData)method.Invoke(_path, new object[] { index, useGlobal });
         }
 
         private Point GetPathPoint(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             var method = _path.GetType().GetMethods()
-                .Single(m => m.Name == "Calculate" && m.GetParameters().Length == 4);
+                .Single(m => m.Name == "GetPointAtDistance" && m.GetParameters().Length == 4);
 
             return (PointData)method.Invoke(_path, new object[] { segment, distance, useNormalizedDistance, useGlobal });
         }
@@ -570,8 +570,8 @@ namespace Redcode.Paths.Editor
 
             _listView.itemIndexChanged += (from, to) =>
             {
-                var fromPoint = _path.GetPoint(from, false);
-                var toPoint = _path.GetPoint(to, false);
+                var fromPoint = _path.GetPointByIndex(from, false);
+                var toPoint = _path.GetPointByIndex(to, false);
 
                 _path.SetPoint(from, toPoint, false);
                 _path.SetPoint(to, fromPoint, false);
@@ -1159,7 +1159,7 @@ namespace Redcode.Paths.Editor
                 return;
 
             var useDirection = _inspector.Q<Toggle>("debug-use-direction").value;
-            var pointData = _path.Calculate(_inspector.Q<Slider>("debug-distance").value);
+            var pointData = _path.GetPointAtDistance(_inspector.Q<Slider>("debug-distance").value);
             var size = HandleUtility.GetHandleSize(pointData.Position);
             var rotation = useDirection ? Quaternion.LookRotation(pointData.Direction != Vector3.zero ? pointData.Direction : Vector3.forward) : pointData.Rotation;
 

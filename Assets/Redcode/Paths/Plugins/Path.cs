@@ -94,6 +94,18 @@ namespace Redcode.Paths
         }
         #endregion
 
+        public Path SetResolution(int resolution)
+        {
+            Resolution = resolution;
+            return this;
+        }
+
+        public Path SetLooped(bool looped)
+        {
+            Looped = looped;
+            return this;
+        }
+
         #region Create
         /// <summary>
         /// Creates a path in the center of global coordinates and with <see cref="Quaternion.identity"/> rotation.
@@ -288,8 +300,8 @@ namespace Redcode.Paths
 
                 ray = new Ray(path.transform.position, normalRotation * Quaternion.AngleAxis(offsetAngle - deltaAngle, Vector3.back) * Vector3.up);
                 path.InsertPoint(0, ray.GetPoint((step / (2f * Mathf.PI)) * (-deltaAngle * Mathf.Deg2Rad)), false);
-                var pos = path.GetPoint(0, false).Position;
-                path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPoint(1, false).Position));
+                var pos = path.GetPointByIndex(0, false).Position;
+                path.SetPoint(0, pos - normal * Vector3.Distance(pos, path.GetPointByIndex(1, false).Position));
             }
 
             return path;
@@ -445,8 +457,8 @@ namespace Redcode.Paths
                 AddPoint();
             }
 
-            path.InsertPoint(1, Vector3.Lerp(path.GetPoint(0, false).Position, path.GetPoint(1, false).Position, 0.5f));
-            path.InsertPoint(path.PointsCount - 1, Vector3.Lerp(path.GetPoint(path.PointsCount - 2, false).Position, path.GetPoint(path.PointsCount - 1, false).Position, 0.5f));
+            path.InsertPoint(1, Vector3.Lerp(path.GetPointByIndex(0, false).Position, path.GetPointByIndex(1, false).Position, 0.5f));
+            path.InsertPoint(path.PointsCount - 1, Vector3.Lerp(path.GetPointByIndex(path.PointsCount - 2, false).Position, path.GetPointByIndex(path.PointsCount - 1, false).Position, 0.5f));
 
             return path;
         }
@@ -1072,7 +1084,7 @@ namespace Redcode.Paths
         /// <param name="index">Index of the point.</param>
         /// <param name="useGlobal">Is it necessary to convert a point from local to global space?</param>
         /// <returns>Calculated point.</returns>
-        public PointData GetPoint(int index, bool useGlobal = true)
+        public PointData GetPointByIndex(int index, bool useGlobal = true)
         {
             var point = _points[WrapIndex(index)];
             var direction = _points.Count == 1 ? Vector3.zero : GetSegmentStartDirection(index);
@@ -1092,9 +1104,9 @@ namespace Redcode.Paths
         /// </summary>
         /// <param name="index">Index of the point.</param>
         /// <param name="useGlobal">Is it necessary to convert a calculated point from local space to global?</param>
-        /// <returns><inheritdoc cref="GetPoint(int, bool )"/></returns>
+        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public PointData Calculate(int index, bool useGlobal = true)
+        public PointData GetPointOnPathByIndex(int index, bool useGlobal = true)
         {
             if (_points.Count == 0 || index < 0)
                 throw new ArgumentException("Index can't be less than 0.", nameof(index));
@@ -1106,7 +1118,7 @@ namespace Redcode.Paths
                     throw new ArgumentException("Index can't be greater than end points count.", nameof(index));
             }
 
-            return GetPoint(index, useGlobal);
+            return GetPointByIndex(index, useGlobal);
         }
 
         /// <summary>
@@ -1115,10 +1127,10 @@ namespace Redcode.Paths
         /// <param name="segment">On which segment do you want to calculate the point?</param>
         /// <param name="distance">At what distance from the beginning of the <paramref name="segment"/> should calculate the point?</param>
         /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
-        /// <param name="useGlobal"><inheritdoc cref="Calculate(int, bool)" path="/param[@name='useGlobal']"/></param>
-        /// <returns><inheritdoc cref="GetPoint(int, bool )"/></returns>
+        /// <param name="useGlobal"><inheritdoc cref="GetPointOnPathByIndex(int, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
         /// <exception cref="ArgumentException"></exception>
-        public PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        public PointData GetPointAtDistance(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (_points.Count < 2)
                 throw new ArgumentException($"Path does not contain segment {segment}.", nameof(segment));
@@ -1178,11 +1190,11 @@ namespace Redcode.Paths
             Point p0, p1, p2, p3;
 
             if (Mathf.Approximately(distance, 0f))
-                return GetPoint(segment, useGlobal);
+                return GetPointByIndex(segment, useGlobal);
             else if (Mathf.Approximately(distance, length))
             {
                 if (_looped && segment != SegmentsCount - 1 || !_looped && segment - 1 != SegmentsCount - 1)
-                    return GetPoint(segment + 1, useGlobal);
+                    return GetPointByIndex(segment + 1, useGlobal);
                 else
                 {
                     direction = GetSegmentEndDirection(segment);
@@ -1242,9 +1254,9 @@ namespace Redcode.Paths
         /// </summary>
         /// <param name="distance">At what distance from the beginning of the path should calculate the point?</param>
         /// <param name="useNormalizedDistance">Is the distance passed in normalized form?</param>
-        /// <param name="useGlobal"><inheritdoc cref="Calculate(int, bool)" path="/param[@name='useGlobal']"/></param>
-        /// <returns><inheritdoc cref="GetPoint(int, bool )"/></returns>
-        public PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
+        /// <param name="useGlobal"><inheritdoc cref="GetPointOnPathByIndex(int, bool)" path="/param[@name='useGlobal']"/></param>
+        /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
+        public PointData GetPointAtDistance(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
             if (useNormalizedDistance)
                 distance *= Length;
@@ -1268,7 +1280,7 @@ namespace Redcode.Paths
                 distance = GetSegmentLength(SegmentsCount - 1);
             }
 
-            return Calculate(segment, distance, false, useGlobal);
+            return GetPointAtDistance(segment, distance, false, useGlobal);
         }
         #endregion
     }
