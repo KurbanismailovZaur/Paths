@@ -374,11 +374,11 @@ Debug.Log(path.PointsCount);
 ![image](https://user-images.githubusercontent.com/5365111/153762902-9267d90d-bda5-49b3-ab2f-9a89e8659c11.png)
 
 # Считывание и изменение точек
-Для считывания значений точек используйте метод `PointData GetPoint(int index, bool useGlobal = true)`.  Данный метод вернет вам объект `PointData`, представляющий точку и ее направление в пути.
+Для считывания значений точек используйте метод `PointData GetPointByIndex(int index, bool useGlobal = true)`.  Данный метод вернет вам объект `PointData`, представляющий точку и ее направление в пути.
 
 ```
 var path = Path.CreatePolygon(4, 1f);
-print(path.GetPoint(0));
+print(path.GetPointByIndex(0));
 ```
 
 ![image](https://user-images.githubusercontent.com/5365111/153776058-8b327be2-6cc3-4ace-9388-9a2fe348084e.png)
@@ -407,10 +407,12 @@ path.SetPoint(0, 0f, 0f, 2f);
 Тут происходит изменение позиции точки с индексом 0 на значение [0, 0, 2f].
 
 # Вычисление точки на пути
-Используйте метод `Calculate` если вам надо вычислить точку лежащую на пути (на желтой линии). Есть несколько перегрузок этого метода.
-* `PointData Calculate(int index, bool useGlobal = true)` - вычисляет точку лежащую на пути по индексу. В отличии от `GetPoint` этот метод учитывает только те точки, которые лежат на пути (желтая линия в редакторе). С помощью параметра `useGlobal` вы можете указывать в каком пространстве вам нужно вычислить точку, если передано значение `true`, то расчет будет происходить в глобальном пространстве. 
-* `PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на указанном сегменте. Если параметр `useNormalizedDistance` равен `true`, то параметр `distance` будет использоваться как нормализованное значение (то есть от 0 до 1), иначе `distance` трактуется как метры.
-* `PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на всем пути. Параметры ведут себя также как и в предыдущем методе.
+Используйте метод `GetPointOnPathByIndex` если вам надо вычислить точку лежащую на пути (на желтой линии).
+* `PointData Calculate(int index, bool useGlobal = true)` - вычисляет точку лежащую на пути по индексу. В отличии от `GetPointByIndex` этот метод учитывает только те точки, которые лежат на пути (желтая линия в редакторе). С помощью параметра `useGlobal` вы можете указывать в каком пространстве вам нужно вычислить точку, если передано значение `true`, то расчет будет происходить в глобальном пространстве.
+
+Используйте метод `GetPointAtDistance` если вам надо вычислить точку лежающую на пути. Есть несколько перегрузок этого метода.
+* `PointData GetPointAtDistance(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на указанном сегменте. Если параметр `useNormalizedDistance` равен `true`, то параметр `distance` будет использоваться как нормализованное значение (то есть от 0 до 1), иначе `distance` трактуется как метры.
+* `PointData GetPointAtDistance(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - вычисляет точку на всем пути. Параметры ведут себя также как и в предыдущем методе.
 
 К примеру, у нас есть такой путь.
 
@@ -423,7 +425,7 @@ path.SetPoint(0, 0f, 0f, 2f);
 На рисунке выше красным отмечены индексы точек, голубым - индексы сегментов. Сегменты всегда начинаются с первой точки пути (желтой точки, не белой). Заметим, что сегмент с индексом 1 находится в нижней части треугольного пути. Его начало указано зеленой стрелкой, а конец - розовой. По задаче, нам надо найти точку лежащую на пути, на расстоянии 1 метра от зеленой в сторону розовой. Для этого подойдет второй перегруженный метод `Calculate` из списка выше.
 
 ```
-var data = _path.Calculate(1, 1f, false); // Вычисляем точку на сегменте с индексом 1, на расстоянии 1 метра от начала.
+var data = _path.GetPointAtDistance(1, 1f, false); // Вычисляем точку на сегменте с индексом 1, на расстоянии 1 метра от начала.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
 sphere.position = data.Position;
@@ -437,7 +439,7 @@ sphere.localScale *= 0.1f;
 Если же вам надо вычислить точку не на конкретном сегменте, а в целом, на всем пути, то просто пропустите индекс сегмента в методе `Calculate`;
 
 ```
-var data = _path.Calculate(1f, false); // Вычисляем точку на всем пути, на расстоянии 1 метра от начала.
+var data = _path.GetPointAtDistance(1f, false); // Вычисляем точку на всем пути, на расстоянии 1 метра от начала.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
 sphere.position = data.Position;
