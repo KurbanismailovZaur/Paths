@@ -374,11 +374,11 @@ Debug.Log(path.PointsCount);
 ![image](https://user-images.githubusercontent.com/5365111/153762902-9267d90d-bda5-49b3-ab2f-9a89e8659c11.png)
 
 # Read and change points
-To read point values, use the `PointData GetPoint(int index, bool useGlobal = true)` method.  This method will return you a `PointData` object representing the point and its direction in the path.
+To read point values, use the `PointData GetPointByIndex(int index, bool useGlobal = true)` method.  This method will return you a `PointData` object representing the point and its direction in the path.
 
 ```
 var path = Path.CreatePolygon(4, 1f);
-print(path.GetPoint(0));
+print(path.GetPointByIndex(0));
 ```
 
 ![image](https://user-images.githubusercontent.com/5365111/153776058-8b327be2-6cc3-4ace-9388-9a2fe348084e.png)
@@ -407,10 +407,12 @@ path.SetPoint(0, 0f, 0f, 2f);
 This changes the position of the point with index 0 to [0, 0, 2f].
 
 # Calculate a point on a path
-Use the `Calculate` method if you need to calculate a point on a path (on the yellow line). There are several overloads of this method.
-* `PointData Calculate(int index, bool useGlobal = true)` - calculates the point lying on the path by the index. Unlike the `GetPoint` method, this method takes into account only those points that lie on the path (the yellow line in the editor). You can use the `useGlobal` parameter to specify in which space you want to calculate the point; if `true` is passed, the calculation will take place in the global space. 
-* `PointData Calculate(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - calculates the point on the specified segment. If the `useNormalizedDistance` parameter is `true`, then the `distance` parameter will be used as a normalized value (that is, from 0 to 1), otherwise `distance` is treated as meters.
-* `PointData Calculate(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - calculates the point on the whole path. The parameters behave the same as in the previous method.
+Use method `GetPointOnPathByIndex` if you need to calculate a point on the path (on the yellow line).
+* `PointData Calculate(int index, bool useGlobal = true)` - calculates point on the path by index. As opposed to `GetPointByIndex`, this method only takes into account the points that lie on the path (the yellow line in the editor). With the `useGlobal` parameter you can specify in which space you want to calculate the point, if you pass `true` value, the calculation will take place in the global space.
+
+Use the method `GetPointAtDistance` if you need to calculate a point on a path. There are several overloads of this method.
+* `PointData GetPointAtDistance(int segment, float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - calculates the point on the specified segment. If the `useNormalizedDistance` parameter is `true`, then the `distance` parameter will be used as a normalized value (that is, from 0 to 1), otherwise `distance` is treated as meters.
+* `PointData GetPointAtDistance(float distance, bool useNormalizedDistance = true, bool useGlobal = true)` - calculates a point on the entire path. The parameters behave the same as in the previous method.
 
 For example, we have this way.
 
@@ -420,10 +422,10 @@ And we want to get a point that lies on a segment with the index 1. The point mu
 
 ![image](https://user-images.githubusercontent.com/5365111/153778829-90cf2274-a1f3-49bc-bb84-0743cea5e685.png)
 
-In the figure above, point indices are marked in red, and segment indices are marked in blue. Segments always start at the first point of the path (the yellow point, not the white one). Note that the segment with index 1 is at the bottom of the triangular path. Its beginning is indicated by a green arrow, and its end by a pink one. According to the problem, we need to find a point lying on the path at a distance of 1 meter from the green toward the pink. The second overloaded method `Calculate` from the list above is suitable for this purpose.
+In the figure above, point indices are marked in red, and segment indices are marked in blue. Segments always start at the first point of the path (the yellow point, not the white one). Note that the segment with index 1 is at the bottom of the triangular path. Its beginning is indicated by a green arrow, and its end by a pink one. According to the problem, we need to find a point lying on the path at a distance of 1 meter from the green toward the pink. The first overloaded method `GetPointAtDistance` from the list above is suitable for this purpose.
 
 ```
-var data = _path.Calculate(1, 1f, false); // Calculate a point on the segment with the index 1, at a distance of 1 meter from the beginning.
+var data = _path.GetPointAtDistance(1, 1f, false); // Calculate a point on the segment with the index 1, at a distance of 1 meter from the beginning.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
 sphere.position = data.Position;
@@ -434,10 +436,10 @@ sphere.localScale *= 0.1f;
 
 As you can see, the point has been successfully calculated.
 
-If you need to calculate a point not on a particular segment, but on the whole path, just skip the segment index in the `Calculate` method;
+If you need to calculate a point not on a particular segment, but on the whole path, just skip the segment index in the `GetPointAtDistance` method;
 
 ```
-var data = _path.Calculate(1f, false); // Calculate the point on the entire path, at a distance of 1 meter from the beginning.
+var data = _path.GetPointAtDistance(1f, false); // Calculate the point on the entire path, at a distance of 1 meter from the beginning.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
 sphere.position = data.Position;
@@ -449,11 +451,11 @@ sphere.localScale *= 0.1f;
 As you see now the point is calculated on the whole path. If the specified distance from the beginning is greater than the length of the path, the point will be bounded at the end of that path.
 
 # Point Cycle
-To create a point cycle you can use the `PointsCount` property and the `GetPoint` method.
+To create a point cycle you can use the `PointsCount` property and the `GetPointAtDistance` method.
 
 ```
 for (int i = 0; i < _path.PointsCount; i++)
-  print(_path.GetPoint(i));
+  print(_path.GetPointAtDistance(i));
 ```
 
 ![image](https://user-images.githubusercontent.com/5365111/153781350-232b2420-7080-473e-ab39-14493810ee34.png)
