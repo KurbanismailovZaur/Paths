@@ -287,7 +287,7 @@ this code will create a wave with a height of 1 meter, a frequency of 2 waves pe
 ## Path optimization
 You can use the `Optimize` method to optimize a path. The algorithm will find the most appropriate value for the `Resolution` field, such that the path looks moderately smoothed.
 
-```
+```c#
 var path = Path.CreateSpiral(0f, 3, 1f, 8, true);
 path.Optimize();
 ```
@@ -297,7 +297,7 @@ path.Optimize();
 ## Segment length
 Use the `float GetSegmentLength(int segment)` method to get the length of a particular path segment.
 
-```
+```c#
 var path = Path.CreatePolygon(4, 1f);
 var segment1Length = path.GetSegmentLength(1);
 Debug.Log(segment1Length);
@@ -312,7 +312,7 @@ In the figure above, the indexes of the segments formed by the dots are shown in
 # Point type
 To work with points through code, there is a data type Point. It is a structure with properties `Position` and `Rotation`. You can create a point using the default constructor or an overloaded version that takes the position and rotation of the point in space. All points inside a `Path` object are calculated locally, but as you'll see later, almost all methods allow you to work with points globally as well if you want to.
 
-```
+```c#
 var point1 = new Point(); // Create a point at position [0, 0, 0] and with zero rotation.
 point1.Position = new Vector3(1f, 2f, 3f); // Set the position of this point to [1, 2, 3].
 point1.Rotation = Quaternion.Euler(0f, 90f, 0f); // Set the rotation of this point in the direction of the global X axis
@@ -352,7 +352,7 @@ This type is an extended version of the `Point` structure, which in addition to 
 ### Example of using these methods.
 Almost all of the methods described above have a `useGlobal` parameter, which tells the method in which space (local? or global?) the position and/or rotation are passed to it. A value of `true` means that the data is passed in global space.
 
-```
+```c#
 var path = Path.Create();
 path.AddPoint(Vector3.zero);
 path.AddPoint(1f, 0f, 0f);
@@ -376,7 +376,7 @@ Debug.Log(path.PointsCount);
 # Read and change points
 To read point values, use the `PointData GetPointByIndex(int index, bool useGlobal = true)` method.  This method will return you a `PointData` object representing the point and its direction in the path.
 
-```
+```c#
 var path = Path.CreatePolygon(4, 1f);
 print(path.GetPointByIndex(0));
 ```
@@ -397,7 +397,7 @@ Use one of the overloaded variants of the `SetPoint` method to write points:
 
 For example:
 
-```
+```c#
 var path = Path.CreatePolygon(4, 1f);
 path.SetPoint(0, 0f, 0f, 2f);
 ```
@@ -424,7 +424,7 @@ And we want to get a point that lies on a segment with the index 1. The point mu
 
 In the figure above, point indices are marked in red, and segment indices are marked in blue. Segments always start at the first point of the path (the yellow point, not the white one). Note that the segment with index 1 is at the bottom of the triangular path. Its beginning is indicated by a green arrow, and its end by a pink one. According to the problem, we need to find a point lying on the path at a distance of 1 meter from the green toward the pink. The first overloaded method `GetPointAtDistance` from the list above is suitable for this purpose.
 
-```
+```c#
 var data = _path.GetPointAtDistance(1, 1f, false); // Calculate a point on the segment with the index 1, at a distance of 1 meter from the beginning.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
@@ -438,7 +438,7 @@ As you can see, the point has been successfully calculated.
 
 If you need to calculate a point not on a particular segment, but on the whole path, just skip the segment index in the `GetPointAtDistance` method;
 
-```
+```c#
 var data = _path.GetPointAtDistance(1f, false); // Calculate the point on the entire path, at a distance of 1 meter from the beginning.
 
 var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
@@ -453,7 +453,7 @@ As you see now the point is calculated on the whole path. If the specified dista
 # Point Cycle
 To create a point cycle you can use the `PointsCount` property and the `GetPointAtDistance` method.
 
-```
+```c#
 for (int i = 0; i < _path.PointsCount; i++)
   print(_path.GetPointAtDistance(i));
 ```
