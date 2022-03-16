@@ -20,6 +20,20 @@ namespace Redcode.Paths
         /// </summary>
         public int PointsCount => _points.Count;
 
+        /// <summary>
+        /// The number of points that lie on the path (yello points in scene view).
+        /// </summary>
+        public int PointsCountOnPath
+        {
+            get
+            {
+                if (_points.Count < 3)
+                    return _points.Count;
+
+                return _looped ? _points.Count : _points.Count <= 4 ? 2 : _points.Count - 2;
+            }
+        }
+
         [SerializeField]
         private List<float> _segmentsLengths = new();
 
@@ -1262,6 +1276,9 @@ namespace Redcode.Paths
                 distance *= Length;
 
             distance = Mathf.Clamp(distance, 0f, Length);
+            //distance = Mathf.Max(distance, 0f);
+            //var offsetVector = GetPointOnPathByIndex(PointsCountOnPath).Position
+            //distance = distance % Length;
 
             var segment = 0;
             for (; segment < SegmentsCount; segment++)
