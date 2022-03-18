@@ -349,7 +349,7 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &969687031
+--- !u!1 &1847483631
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -357,131 +357,63 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 969687033}
-  - component: {fileID: 969687032}
+  - component: {fileID: 1847483633}
+  - component: {fileID: 1847483632}
   m_Layer: 0
-  m_Name: Path (Spiral3D)
+  m_Name: Path
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &969687032
+--- !u!114 &1847483632
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 969687031}
+  m_GameObject: {fileID: 1847483631}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 37300155faf7e3a42933114c7aec9092, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   _points:
-  - _position: {x: -0.029462783, y: -0.04166666, z: -0.02946278}
+  - _position: {x: 1, y: 0, z: 0}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0, y: 0, z: 0}
+  - _position: {x: 2, y: 0, z: 1}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.029462775, y: 0.04166666, z: -0.029462785}
+  - _position: {x: 3, y: 0, z: 0}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.000000019317303, y: 0.06140106, z: -0.08333333}
+  - _position: {x: 2, y: 0, z: -1}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.08838837, y: 0.08853276, z: -0.08838832}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.16666666, y: 0.118067734, z: 0.00000005970803}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.14731383, y: 0.14857963, z: 0.14731395}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.00000012117218, y: 0.17957118, z: 0.24999997}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.20623957, y: 0.21083096, z: 0.20623934}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.3333333, y: 0.24225514, z: -0.00000020370975}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.26516485, y: 0.27378714, z: -0.2651652}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.00000030732073, y: 0.30539352, z: -0.41666663}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.32409084, y: 0.33705342, z: -0.32409033}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.49999994, y: 0.36875302, z: 0.00000043200515}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.38301578, y: 0.40048292, z: 0.3830165}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.000000577763, y: 0.43223637, z: 0.58333325}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.4419422, y: 0.46400866, z: 0.44194123}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.6666666, y: 0.49579602, z: -0.0000007445943}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: 0.50086665, y: 0.52759594, z: -0.50086784}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.00000093249895, y: 0.55940604, z: -0.74999994}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.55979353, y: 0.5912247, z: -0.5597921}
-    _rotation: {x: 0, y: 0, z: 0, w: 1}
-    _eulers: {x: -0, y: 0, z: 0}
-  - _position: {x: -0.83333325, y: 0.6230508, z: 0.0000011473894}
+  - _position: {x: 2, y: 0, z: 0}
     _rotation: {x: 0, y: 0, z: 0, w: 1}
     _eulers: {x: -0, y: 0, z: 0}
   _segmentsLengths:
-  - 0.1730683
-  - 0.061134852
-  - 0.06713593
-  - 0.09514945
-  - 0.12472517
-  - 0.15525578
-  - 0.1864031
-  - 0.21794042
-  - 0.24973276
-  - 0.28169864
-  - 0.31378734
-  - 0.34596565
-  - 0.3782115
-  - 0.410509
-  - 0.44284713
-  - 0.4752179
-  - 0.50761473
-  - 0.54003346
-  - 0.57247007
-  - 0.6049218
-  - 0.66937053
-  - 1.0507596
+  - 1.4604331
+  - 1.4856969
+  - 1.4604332
+  - 1.0401976
+  - 1.0401976
   _segmentCalculatorIndex: 3
-  _resolution: 13
-  _step: 0.07692308
-  _looped: 0
-  _length: 6.0307546
---- !u!4 &969687033
+  _resolution: 17
+  _step: 0.05882353
+  _looped: 1
+  _length: 6.4869585
+--- !u!4 &1847483633
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 969687031}
+  m_GameObject: {fileID: 1847483631}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -0.12512}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

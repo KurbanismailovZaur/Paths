@@ -278,7 +278,8 @@ this code will create a wave with a height of 1 meter, a frequency of 2 waves pe
 ![image](https://user-images.githubusercontent.com/5365111/155000335-2caa21c7-7215-42b2-bafe-23f547cf1acd.png)
 
 ## Path properties
-* `PointsCount` - total number of points in the path
+* `PointsCount` - total number of points in the path.
+* `PointsCountOnPath` - the number of points that lie directly on the path (yellow line in the editor).
 * `SegmentsCount` - number of segments in the path. A segment is a curve between two points. In a looped path, the number of segments is always equal to the number of points.
 * `Resolution` - path resolution. Affects all segments.
 * `Looped` - is the path looped?
@@ -448,7 +449,7 @@ sphere.localScale *= 0.1f;
 
 ![image](https://user-images.githubusercontent.com/5365111/153779343-e8e415e3-c50f-4a9d-bbd2-62baff7f35f6.png)
 
-As you see now the point is calculated on the whole path. If the specified distance from the beginning is greater than the length of the path, the point will be bounded at the end of that path.
+As you see now the point is calculated on the whole path. If the specified distance from the beginning is greater than the length of the path, then the point will either be looped (if the path is looped), or it will continue the path from the end point
 
 # Point Cycle
 To create a point cycle you can use the `PointsCount` property and the `GetPointAtDistance` method.
