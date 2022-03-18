@@ -1272,13 +1272,43 @@ namespace Redcode.Paths
         /// <returns><inheritdoc cref="GetPointByIndex(int, bool )"/></returns>
         public PointData GetPointAtDistance(float distance, bool useNormalizedDistance = true, bool useGlobal = true)
         {
+            if (PointsCount == 0)
+                throw new Exception($"Path \"{name}\" does not contain points.");
+
             if (useNormalizedDistance)
                 distance *= Length;
 
-            distance = Mathf.Clamp(distance, 0f, Length);
-            //distance = Mathf.Max(distance, 0f);
-            //var offsetVector = GetPointOnPathByIndex(PointsCountOnPath).Position
-            //distance = distance % Length;
+            distance = Mathf.Max(distance, 0f);
+
+            Vector3 offsetPosition;
+            Quaternion offsetRotation;
+
+            if (Looped || PointsCount == 1)
+            {
+                offsetPosition = Vector3.zero;
+                offsetRotation = Quaternion.identity;
+            }
+            else
+            {
+                var firstPoint = GetPointOnPathByIndex(0);
+                var lastPoint = GetPointOnPathByIndex(PointsCountOnPath - 1);
+
+                offsetPosition = lastPoint.Position - firstPoint.Position;
+                offsetRotation = lastPoint.Rotation * Quaternion.Inverse(firstPoint.Rotation);
+            }
+
+            var repeated = (int)(distance / Length);
+            var frac = distance % Length;
+            if (Mathf.Approximately(frac, 0f))
+                repeated = Math.Max(repeated - 1, 0);
+
+            offsetPosition *= repeated;
+            offsetRotation = Quaternion.SlerpUnclamped(Quaternion.identity, offsetRotation, repeated);
+
+            if (!Mathf.Approximately(distance, 0f) && Mathf.Approximately(frac, 0f))
+                distance = Length;
+            else
+                distance = frac;
 
             var segment = 0;
             for (; segment < SegmentsCount; segment++)
@@ -1297,7 +1327,9 @@ namespace Redcode.Paths
                 distance = GetSegmentLength(SegmentsCount - 1);
             }
 
-            return GetPointAtDistance(segment, distance, false, useGlobal);
+            var pointData = GetPointAtDistance(segment, distance, false, useGlobal);
+
+            return new PointData(pointData.Position + offsetPosition, offsetRotation * pointData.Rotation, pointData.Direction);
         }
         #endregion
     }
