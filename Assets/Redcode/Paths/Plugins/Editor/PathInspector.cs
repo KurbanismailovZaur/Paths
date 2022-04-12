@@ -150,6 +150,11 @@ namespace Redcode.Paths.Editor
         private void FindAllMainElements()
         {
             _inspector = new VisualElement();
+
+            _pathInspectorUXML = Resources.Load<VisualTreeAsset>("Redcode/Paths/PathInspectorUXML");
+            _pathSceneViewUXML = Resources.Load<VisualTreeAsset>("Redcode/Paths/PathSceneViewUXML");
+            _pathPointsListElementUXML = Resources.Load<VisualTreeAsset>("Redcode/Paths/PointsListElement");
+
             _pathInspectorUXML.CloneTree(_inspector);
 
             _path = ((Path)serializedObject.targetObject);
